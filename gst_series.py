@@ -202,7 +202,7 @@ def show_map(dem: ee.Image, roi: ee.Geometry, glacier_mask):
     return m
 
 
-def save(raw: pd.DataFrame, time_series: pd.DataFrame, yr: pd.DataFrame, fig: matplotlib.figure.Figure, results_folder: str = ".") -> None:
+def save_tables_and_figure(raw: pd.DataFrame, time_series: pd.DataFrame, yr: pd.DataFrame, fig: matplotlib.figure.Figure, results_folder: str = ".") -> None:
     raw.to_csv(os.path.join(results_folder, "gst_raw_scene_bins.csv"), index=False)
     time_series.to_csv(os.path.join(results_folder, "gst_halfmonthly.csv"), index=False)
     yr.to_csv(os.path.join(results_folder, "gst_ablation_season.csv"), index=False)
