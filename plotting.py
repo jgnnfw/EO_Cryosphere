@@ -2,9 +2,12 @@
 It insures the main Jupyter notebook stays clean from plotting stuff."""
 
 import ee
+import matplotlib
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import figure
+from scipy import stats
 
 
 def plot_histogram_image_collection(
@@ -52,3 +55,25 @@ def plot_histogram_image_collection(
     plt.title(f"{collection.get('collection_name').getInfo()} - Histogram of Recording Time, n={collection.size().getInfo()}")
     plt.legend(title="Cloud coverage")
     plt.show()
+
+
+def plot_gst_series(ts: pd.DataFrame) -> matplotlib.figure.Figure:
+    ts = ts.assign(err=np.hypot(ts["gst_sd"], ts["gst_unc"]))
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 6), sharex=True)
+
+    # --- gst plot ---
+    for zone, d in ts.groupby("zone"):
+        ax.errorbar(d["date"], d["gst"], yerr=d["err"], fmt=".-", lw=0.6,
+                       elinewidth=0.5, ecolor="gray", capsize=1.5, label=zone)
+
+    ax.axhline(0, color="black", ls="--", linewidth=0.6)
+    ax.set(
+        ylabel="glacier surface temperature (°C)",
+        title="Half-month area-weighted GST"
+    )
+    ax.legend()
+
+    fig.show()
+
+    return fig
