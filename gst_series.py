@@ -193,7 +193,7 @@ def ablation_trend(ts: pd.DataFrame):
     return yr
 
 
-def show_map(dem: ee.Image, roi: ee.Geometry, glacier_mask):
+def show_map(dem: ee.Image, roi: ee.Geometry, glacier_mask: ee.Geometry):
     """Optional: quick look in a notebook."""
     m = geemap.Map()
     m.centerObject(roi, 13)
