@@ -90,7 +90,7 @@ def _landsat(roi: ee.Geometry, start: str, end: str):
     return cols[0].merge(cols[1])
 
 
-def download(bin_img: ee.Image | ee.Element, glacier_mask: ee.Image, roi: ee.Geometry, start: str, end: str) -> pd.DataFrame:
+def download(bin_img: ee.Image | ee.Element, glacier_mask: ee.Image, roi: ee.Geometry, start: str, end: str, debug: bool = False) -> pd.DataFrame:
     rows = []
     for year in range(int(start[:4]), int(end[:4]) + 1):
         y0, y1 = f"{year}-01-01", f"{year + 1}-01-01"
@@ -98,7 +98,8 @@ def download(bin_img: ee.Image | ee.Element, glacier_mask: ee.Image, roi: ee.Geo
         fc = col.map(lambda img: _per_scene(img, bin_img=bin_img, glacier_mask=glacier_mask, roi=roi)).flatten()
         feats = fc.getInfo()["features"]
         rows += [f["properties"] for f in feats]
-        print(year, "scenes x bins:", len(feats))
+        if debug:
+            print(year, "scenes x bins:", len(feats))
 
     df = pd.DataFrame(rows)
     df["time"] = pd.to_datetime(df["time"], unit="ms")
@@ -111,7 +112,7 @@ def _half_month(t):
     return (t.dt.month - 1) * 2 + (t.dt.day > 15).astype(int)  # 0..23
 
 
-def process(df: pd.DataFrame) -> pd.DataFrame:
+def process(df: pd.DataFrame, debug: bool = False) -> pd.DataFrame:
 
     df = df[df["valid"] > 0].copy()
     df["st"] = df["stsum"] / df["valid"]
@@ -150,9 +151,11 @@ def process(df: pd.DataFrame) -> pd.DataFrame:
     names[N_ZONES - 1] += " (high)"
     comp["zone"] = comp["bin"].map(zone_of_bin).map(names)
     zone_area = area.groupby(zone_of_bin.map(names)).sum()
-    print("\nElevation zones (m a.s.l.):")
-    for z, bins in area.groupby(zone_of_bin.map(names)):
-        print(f"  {z}: {bins.index.min()}-{bins.index.max() + BIN_M} m, area share {bins.sum() / area.sum():.2f}")
+
+    if debug:
+        print("\nElevation zones (m a.s.l.):")
+        for z, bins in area.groupby(zone_of_bin.map(names)):
+            print(f"  {z}: {bins.index.min()}-{bins.index.max() + BIN_M} m, area share {bins.sum() / area.sum():.2f}")
 
     # area-weighted mean per (year, half-month, zone) and for the whole glacier (Eq. 2)
     # added uncertainty, changed it somehow
@@ -176,20 +179,22 @@ def process(df: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
-def ablation_trend(ts: pd.DataFrame):
+def ablation_trend(ts: pd.DataFrame, debug: bool = False) -> pd.DataFrame:
     s = ts[ts["hm"].between((ABLATION_MONTHS[0] - 1) * 2, ABLATION_MONTHS[-1] * 2 - 1)]
     yr = (s.groupby(["zone", "year"]).agg(gst=("gst", "mean"), gst_sd=("gst", "std"),
                                           gst_unc=("gst_unc", "mean"), n_hm=("gst", "size")).reset_index())
     yr = yr[yr["n_hm"] >= MIN_HM_PER_SEASON]
-    print("\nAblation-season (Jun-Sep) GST trend, deg C per decade:")
+    if debug:
+        print("\nAblation-season (Jun-Sep) GST trend, deg C per decade:")
     for zone, d in yr.groupby("zone"):
         if len(d) < 4:
             print(f"  {zone}: too few years ({len(d)})")
             continue
         lr = stats.linregress(d["year"], d["gst"])
         ts_slope = stats.theilslopes(d["gst"], d["year"])[0]
-        print(f"  {zone}: OLS {lr.slope * 10:+.2f} (p={lr.pvalue:.2f}), "
-              f"Theil-Sen {ts_slope * 10:+.2f}, n={len(d)} years")
+        if debug:
+            print(f"  {zone}: OLS {lr.slope * 10:+.2f} (p={lr.pvalue:.2f}), "
+                  f"Theil-Sen {ts_slope * 10:+.2f}, n={len(d)} years")
     return yr
 
 
@@ -202,9 +207,10 @@ def show_map(dem: ee.Image, roi: ee.Geometry, glacier_mask: ee.Geometry):
     return m
 
 
-def save_tables_and_figure(raw: pd.DataFrame, time_series: pd.DataFrame, yr: pd.DataFrame, fig: matplotlib.figure.Figure, results_folder: str = ".") -> None:
+def save_tables_and_figure(raw: pd.DataFrame, time_series: pd.DataFrame, yr: pd.DataFrame, fig: matplotlib.figure.Figure, results_folder: str = ".", debug: bool = False) -> None:
     raw.to_csv(os.path.join(results_folder, "gst_raw_scene_bins.csv"), index=False)
     time_series.to_csv(os.path.join(results_folder, "gst_halfmonthly.csv"), index=False)
     yr.to_csv(os.path.join(results_folder, "gst_ablation_season.csv"), index=False)
     fig.savefig(os.path.join(results_folder, "gst_series.png"), dpi=300)
-    print("\nSaved: gst_raw_scene_bins.csv, gst_halfmonthly.csv, gst_ablation_season.csv, gst_series.png")
+    if debug:
+        print("\nSaved: gst_raw_scene_bins.csv, gst_halfmonthly.csv, gst_ablation_season.csv, gst_series.png")
