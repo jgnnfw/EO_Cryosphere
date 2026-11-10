@@ -58,7 +58,7 @@ def plot_histogram_image_collection(
     plt.show()
 
 
-def plot_gst_series(ts: pd.DataFrame) -> matplotlib.figure.Figure:
+def plot_gst_series(ts: pd.DataFrame, errorbars: bool) -> matplotlib.figure.Figure:
     ts = ts.assign(err=np.hypot(ts["gst_sd"], ts["gst_unc"]))
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 6), sharex=True)
@@ -67,8 +67,11 @@ def plot_gst_series(ts: pd.DataFrame) -> matplotlib.figure.Figure:
 
     # --- gst plot ---
     for zone, d in ts.groupby("zone"):
-        ax.errorbar(d["date"], d["gst"], yerr=d["err"], fmt=".-", lw=0.6,
+        if errorbars:
+            ax.errorbar(d["date"], d["gst"], yerr=d["err"], fmt=".-", lw=0.6,
                        elinewidth=0.5, ecolor="gray", capsize=1.5, label=zone)
+        else:
+            ax.plot(d["date"], d["gst"], fmt=".-", lw=0.6, label=zone)
 
     ax.axhline(0, color=color, ls="--", linewidth=0.6)
     ax.set(
@@ -77,8 +80,9 @@ def plot_gst_series(ts: pd.DataFrame) -> matplotlib.figure.Figure:
     )
     ax.legend(loc="upper left")
 
-    plt.text(s="error bars: √(spatial_scattering² + mean_surface_temperature_standard_deviation²)",
-            x=0.5, y=-0.08, transform=ax.transAxes, ha="center", va="top")
+    if errorbars:
+        plt.text(s="error bars: √(spatial_scattering² + mean_surface_temperature_standard_deviation²)",
+                x=0.5, y=-0.08, transform=ax.transAxes, ha="center", va="top")
 
     fig.show()
 
