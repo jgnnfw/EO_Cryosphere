@@ -123,7 +123,7 @@ def process(df: pd.DataFrame) -> pd.DataFrame:
     df = df.sort_values(["scene", "bin"])
     g = df.groupby("scene")["st"]
     prev, nxt = g.shift(1), g.shift(-1)
-    adj = (df.groupby("scene")["bin"].diff() == BIN_M) & (df.groupby("scene")["bin"].diff(-1) == -BIN_M)  # true neighbours only; did add .groupby("scene") in both here not sure thats correct ???
+    adj = (df["bin"].diff() == BIN_M) & (df["bin"].diff(-1) == -BIN_M)  # true neighbours only
     spike = adj & (((df["st"] - prev > 5) & (df["st"] - nxt > 5)) |
                    ((prev - df["st"] > 5) & (nxt - df["st"] > 5)))
     df = df[~spike]
