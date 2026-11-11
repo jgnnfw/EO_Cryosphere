@@ -207,10 +207,12 @@ def show_map(dem: ee.Image, roi: ee.Geometry, glacier_mask: ee.Geometry):
     return m
 
 
-def save_tables_and_figure(raw: pd.DataFrame, time_series: pd.DataFrame, yr: pd.DataFrame, fig: matplotlib.figure.Figure, results_folder: str = ".", debug: bool = False) -> None:
-    raw.to_csv(os.path.join(results_folder, "gst_raw_scene_bins.csv"), index=False)
-    time_series.to_csv(os.path.join(results_folder, "gst_halfmonthly.csv"), index=False)
-    yr.to_csv(os.path.join(results_folder, "gst_ablation_season.csv"), index=False)
-    fig.savefig(os.path.join(results_folder, "gst_series.png"), dpi=300)
+def save_tables_and_figure(raw: pd.DataFrame, time_series: pd.DataFrame, yr: pd.DataFrame, fig: matplotlib.figure.Figure, save_folder_path: str = ".", debug: bool = False) -> None:
+    if not os.path.exists(save_folder_path):
+        os.makedirs(save_folder_path)
+    raw.to_csv(os.path.join(save_folder_path, "gst_raw_scene_bins.csv"), index=False)
+    time_series.to_csv(os.path.join(save_folder_path, "gst_halfmonthly.csv"), index=False)
+    yr.to_csv(os.path.join(save_folder_path, "gst_ablation_season.csv"), index=False)
+    fig.savefig(os.path.join(save_folder_path, "gst_series.png"), dpi=300)
     if debug:
         print("\nSaved: gst_raw_scene_bins.csv, gst_halfmonthly.csv, gst_ablation_season.csv, gst_series.png")

@@ -71,7 +71,7 @@ def plot_gst_series(ts: pd.DataFrame, errorbars: bool) -> matplotlib.figure.Figu
             ax.errorbar(d["date"], d["gst"], yerr=d["err"], fmt=".-", lw=0.6,
                        elinewidth=0.5, ecolor="gray", capsize=1.5, label=zone)
         else:
-            ax.plot(d["date"], d["gst"], fmt=".-", lw=0.6, label=zone)
+            ax.plot(d["date"], d["gst"], marker=".", lw=0.6, label=zone)
 
     ax.axhline(0, color=color, ls="--", linewidth=0.6)
     ax.set(
@@ -156,6 +156,60 @@ def plot_half_months(gst_half_month: pd.DataFrame) -> matplotlib.figure.Figure:
         loc="upper right",
         title="Season"
     )
+    plt.tight_layout()
+    plt.show()
+
+    return fig
+
+
+def plot_half_months_2(gst_half_month: pd.DataFrame) -> matplotlib.figure.Figure:
+    gst_half_month["month"] = gst_half_month["hm"] // 2 + 1
+
+    quarterly = gst_half_month.groupby(["year", (gst_half_month["month"] - 1) // 3 + 1]).size().reset_index(
+        name="count")
+
+    quarterly["date"] = pd.to_datetime(
+        quarterly["year"].astype(str) + "-" + ((quarterly.iloc[:, 1] - 1) * 3 + 1).astype(str) + "-01")
+
+    def seasonal_color(month):
+        if month in [12, 1, 2]:
+            return "steelblue"  # Winter
+        elif month in [3, 4, 5]:
+            return "mediumseagreen"  # Spring
+        elif month in [6, 7, 8]:
+            return "indianred"  # Summer
+        else:
+            return "darkorange"  # Autumn
+
+    # Quarterly colors based on the middle month of each quarter
+    quarterly_colors = quarterly.iloc[:, 1].apply(
+        lambda q: seasonal_color((q - 1) * 3 + 2)
+    )
+
+    # Plot
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4), width_ratios=[2, 0.8])
+
+    ax1.set_title("Quarterly observations")
+
+    ax1.bar(quarterly["date"], quarterly["count"], width=75, color=quarterly_colors)
+    ax1.set_ylabel("Number of observations")
+    seasons = {
+        "Winter": ([12, 1, 2], "steelblue"),
+        "Spring": ([3, 4, 5], "mediumseagreen"),
+        "Summer": ([6, 7, 8], "indianred"),
+        "Autumn": ([9, 10, 11], "darkorange"),
+    }
+
+    counts = [quarterly.loc[quarterly["date"].dt.month.isin(months), "count"].sum() for season, (months, color) in
+              seasons.items()]
+    ax2.bar(seasons.keys(), counts, color=quarterly_colors)
+    ax2.set_title("Total")
+
+    ax1.tick_params(axis="x", labelrotation=0)
+
+    legend_handles = [Patch(facecolor=color, label=season) for season, (month, color) in seasons.items()]
+    ax1.legend(handles=legend_handles, loc="upper left", title="Season")
+
     plt.tight_layout()
     plt.show()
 
