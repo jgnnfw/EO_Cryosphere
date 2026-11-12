@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 import os
+from gst_functions import *
 
 # --------------- module specific config --------------------------------
 BIN_M = 50  # elevation bin height (paper: 50 m)
@@ -98,8 +99,7 @@ def download(bin_img: ee.Image | ee.Element, glacier_mask: ee.Image, roi: ee.Geo
         fc = col.map(lambda img: _per_scene(img, bin_img=bin_img, glacier_mask=glacier_mask, roi=roi)).flatten()
         feats = fc.getInfo()["features"]
         rows += [f["properties"] for f in feats]
-        if debug:
-            print(year, "scenes x bins:", len(feats))
+        myprint(debug, year, "scenes x bins:", len(feats))
 
     df = pd.DataFrame(rows)
     df["time"] = pd.to_datetime(df["time"], unit="ms")
@@ -184,16 +184,14 @@ def ablation_trend(ts: pd.DataFrame, debug: bool = False) -> pd.DataFrame:
     yr = (s.groupby(["zone", "year"]).agg(gst=("gst", "mean"), gst_sd=("gst", "std"),
                                           gst_unc=("gst_unc", "mean"), n_hm=("gst", "size")).reset_index())
     yr = yr[yr["n_hm"] >= MIN_HM_PER_SEASON]
-    if debug:
-        print("\nAblation-season (Jun-Sep) GST trend, deg C per decade:")
+    myprint(debug, "\nAblation-season (Jun-Sep) GST trend, deg C per decade:")
     for zone, d in yr.groupby("zone"):
         if len(d) < 4:
-            print(f"  {zone}: too few years ({len(d)})")
+            myprint(debug, f"  {zone}: too few years ({len(d)})")
             continue
         lr = stats.linregress(d["year"], d["gst"])
         ts_slope = stats.theilslopes(d["gst"], d["year"])[0]
-        if debug:
-            print(f"  {zone}: OLS {lr.slope * 10:+.2f} (p={lr.pvalue:.2f}), "
+        myprint(debug, f"  {zone}: OLS {lr.slope * 10:+.2f} (p={lr.pvalue:.2f}), "
                   f"Theil-Sen {ts_slope * 10:+.2f}, n={len(d)} years")
     return yr
 
@@ -205,14 +203,3 @@ def show_map(dem: ee.Image, roi: ee.Geometry, glacier_mask: ee.Geometry):
     m.addLayer(dem.clip(roi), {"min": 4500, "max": 6500}, "DEM")
     m.addLayer(glacier_mask.clip(roi), {"palette": "cyan"}, "glacier mask")
     return m
-
-
-def save_tables_and_figure(raw: pd.DataFrame, time_series: pd.DataFrame, yr: pd.DataFrame, fig: matplotlib.figure.Figure, save_folder_path: str = ".", debug: bool = False) -> None:
-    if not os.path.exists(save_folder_path):
-        os.makedirs(save_folder_path)
-    raw.to_csv(os.path.join(save_folder_path, "gst_raw_scene_bins.csv"), index=False)
-    time_series.to_csv(os.path.join(save_folder_path, "gst_halfmonthly.csv"), index=False)
-    yr.to_csv(os.path.join(save_folder_path, "gst_ablation_season.csv"), index=False)
-    fig.savefig(os.path.join(save_folder_path, "gst_series.png"), dpi=300)
-    if debug:
-        print("\nSaved: gst_raw_scene_bins.csv, gst_halfmonthly.csv, gst_ablation_season.csv, gst_series.png")
