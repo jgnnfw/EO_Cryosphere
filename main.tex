@@ -6,8 +6,8 @@
 % Title and Author Information
 %================
 
-\title{{\titlefont \textbf{Title}} \\ {\large ETH Zürich\quad-\quad Autumn 2026}}
-\author{Your Names & asdsf sdf & lsadjf asdf}
+\title{{\titlefont \textbf{Title}}}
+\author{Your Names \and asdsf sdf \and lsadjf asdf}
 \date{\today}
 
 \begin{document}
@@ -15,8 +15,8 @@
 
 \noindent\begin{tabular}{@{}llll}
     Authors & \theauthor \\
-    E-Mails &  \href{mailto:yourname@student.ethz.ch}{yourname@student.ethz.ch} & \href{yourname@student.ethz.ch}{yourname@student.ethz.ch} & \href{yourname@student.ethz.ch}{yourname@student.ethz.ch} \\[6pt]
-    Submission & \today
+    E-Mails &  \href{mailto:yourname@student.ethz.ch}{yourname@student.ethz.ch}, \href{yourname@student.ethz.ch}{yourname@student.ethz.ch}, \href{yourname@student.ethz.ch}{yourname@student.ethz.ch} \\[6pt]
+    Submission & \today \\
 \end{tabular}
 
 \linenumbers
@@ -33,6 +33,11 @@ Clearly state the main objectives or research questions of your report.  This wi
 In this section, describe how you worked through the different tasks of your project. Outline the main steps you followed to analyse the satellite data in Google Earth Engine, for example, how you selected and filtered the images, which indices or masks you created, and how you extracted the information you needed.
 
 Some tasks also ask you to explain how the Earth Observation systems you used actually work. In those cases, include a short explanation of the system you chose, what kind of sensor it uses (e.g. optical, radar, or thermal), what its spatial and temporal resolution is, and why it is a good fit for your analysis. The goal here is to make your approach understandable for someone who was not part of your group or had a different report topic.
+
+
+\begin{itemize}
+    \item Reduced AOI so that no snow areas that are around the glacier are measured as glacier area.
+\end{itemize}
 
 \section{Results}
 In this section, present the key results of your analysis. Include the maps, plots, and figures you created during your work. Try to structure the results in a logical order. You can for example make subsections for the different tasks.
@@ -85,6 +90,10 @@ Try to connect your findings to a broader context. How do they compare with prev
 To wrap up your report, summarise the key takeaways of your project. Highlight the most important results, how they contribute to answering your research questions, and what you learned during the process.
 
 You may also suggest how the analysis could be improved in future work, for example, by using additional data, trying different methods, or applying the same approach to another region or time period.
+
+\begin{itemize}
+    \item Limitation of area by using optical: In years where snow persist the whole year, glacier area cannot be correctly measured.
+\end{itemize}
 
 
 \bibliographystyle{apalike-ejor}
