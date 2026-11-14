@@ -31,7 +31,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 import os
-from gst_functions import *
+from io_param_functions import *
 
 # ----------------- configuration ------------------------------------------------------------
 TARGET_CRS = "EPSG:32644"             # UTM 44N (78-84 deg E); metric grid needed by HillShadow
