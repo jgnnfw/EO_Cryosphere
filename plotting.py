@@ -1,24 +1,26 @@
 """This file should contain functions for plotting with matplotlib.
 It insures the main Jupyter notebook stays clean from plotting stuff."""
-
+from typing import Callable
 import ee
-import matplotlib
-import pandas as pd
+import calendar
+import geemap
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import figure
 from matplotlib.patches import Patch
-from scipy import stats
+from io_param_functions import *
+import matplotlib.dates as mdates
 
-
+#---------------- plot functions returning matplotlig.figure.Figure ------------------------------------------
 def plot_histogram_image_collection(
         collection: ee.ImageCollection,
         start: str,
         end: str,
         split_percent: list[int | float] | None = None,
         color_space: str = "coolwarm"
-) -> None:
-    """Plots the image collection times of recording with color according to Cloudy Pixel Percentage. Bins are quarter yearly, please use start and end dates that align with 3-month cycles.
+) -> matplotlib.figure.Figure:
+    """Plots the image collection times of recording with color according to Cloudy Pixel Percentage.
+    Bins are quarter yearly, please use start and end dates that align with 3-month cycles.
     :param collection: ee.ImageCollection
     :param start: Date 'yyyy-MM-dd'
     :param end: Date 'yyyy-MM-dd'
@@ -42,7 +44,7 @@ def plot_histogram_image_collection(
     ]
     cloud_categories = pd.cut(clouds, bins=cloud_bins, labels=cloud_labels, include_lowest=True)
 
-    plt.figure(figsize=(12, 6))
+    fig = plt.figure(figsize=(12, 6))
 
     data = [dates[cloud_categories == category] for category in cloud_labels]
     date_bins = pd.date_range(start=start, end=end, freq='3MS')
@@ -55,8 +57,8 @@ def plot_histogram_image_collection(
     plt.ylabel("Number of images")
     plt.title(f"{collection.get('collection_name').getInfo()} - Histogram of Recording Time, n={collection.size().getInfo()}")
     plt.legend(title="Cloud coverage")
-    plt.show()
 
+    return fig
 
 def plot_gst_series(ts: pd.DataFrame, errorbars: bool) -> matplotlib.figure.Figure:
     ts = ts.assign(err=np.hypot(ts["gst_sd"], ts["gst_unc"]))
@@ -83,8 +85,6 @@ def plot_gst_series(ts: pd.DataFrame, errorbars: bool) -> matplotlib.figure.Figu
     if errorbars:
         plt.text(s="error bars: √(spatial_scattering² + mean_surface_temperature_standard_deviation²)",
                 x=0.5, y=-0.08, transform=ax.transAxes, ha="center", va="top")
-
-    fig.show()
 
     return fig
 
@@ -157,8 +157,6 @@ def plot_half_months(gst_half_month: pd.DataFrame) -> matplotlib.figure.Figure:
         title="Season"
     )
     plt.tight_layout()
-    plt.show()
-
     return fig
 
 
@@ -211,6 +209,110 @@ def plot_half_months_2(gst_half_month: pd.DataFrame) -> matplotlib.figure.Figure
     ax1.legend(handles=legend_handles, loc="upper left", title="Season")
 
     plt.tight_layout()
-    plt.show()
-
     return fig
+
+
+# ----------------------------------------------------------------------------- plots
+def plot_sar_snow_series(df: pd.DataFrame, col: str = "wet") -> matplotlib.figure.Figure:
+    """Wet fraction (or other column) per date over the full period, by orbit direction."""
+    fig, ax = plt.subplots(figsize=(12, 4))
+    for orb, d in df.groupby("orbit"):
+        ax.plot(d["date"], d[col], "o", ms=3, label=orb.lower())
+    ax.set_ylabel(col)
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+def plot_sar_snow_season(df: pd.DataFrame, day_ticks: tuple[list[int|float], list[str]], col: str = "wet") -> matplotlib.figure.Figure:
+    """Seasonal course (Dec-May) of all years overlaid, one panel per orbit direction."""
+    orbs = sorted(df["orbit"].unique())
+    sys_ = sorted(df["sy"].unique())
+    cmap = plt.get_cmap("viridis")
+    fig, axs = plt.subplots(1, len(orbs), figsize=(6 * len(orbs), 4), sharey=True, squeeze=False)
+    for ax, orb in zip(axs[0], orbs):
+        for sy, d in df[df["orbit"] == orb].groupby("sy"):
+            d = d.sort_values("day")
+            ax.plot(d["day"], d[col], ".-", color=cmap(sys_.index(sy) / max(len(sys_) - 1, 1)), label=str(sy))
+        ax.set_xticks(*day_ticks)
+        ax.set_title(orb.lower())
+    axs[0, 0].set_ylabel(col)
+    axs[0, -1].legend(ncol=2, fontsize=7, title="season year")
+    fig.tight_layout()
+    return fig
+
+
+def plot_sar_snow_elev(bdf: pd.DataFrame, sy: int, orbit: str, min_px: int = 20) -> matplotlib.figure.Figure:
+    """Wet fraction by elevation band (y) and date (x) for one season year and orbit."""
+    d = bdf[(bdf["sy"] == sy) & (bdf["orbit"] == orbit) & (bdf["n_px"] >= min_px)]
+    pv = d.pivot_table(index="elev", columns="date", values="wet")
+    fig, ax = plt.subplots(figsize=(10, 4))
+    mesh = ax.pcolormesh(mdates.date2num(pv.columns), pv.index.values, np.ma.masked_invalid(pv.values),
+                         cmap="Blues", vmin=0, vmax=1, shading="nearest")
+    ax.xaxis_date()
+    fig.autofmt_xdate()
+    ax.set_ylabel("elevation (m)")
+    ax.set_title(f"{sy} {orbit.lower()}")
+    fig.colorbar(mesh, ax=ax, label="wet fraction")
+    fig.tight_layout()
+    return fig
+
+
+def plot_sar_snow_diff_hist(roi: ee.Geometry, coll: ee.ImageCollection,
+                            months: tuple[int, ...] = (12, 1, 2, 3, 4, 5),  thr: float = -2.0,
+                            scale: float = 30, rng: tuple[float, float] = (-15, 10),
+                            nbins: int = 50, debug: bool = False) -> matplotlib.figure.Figure:
+    """Histogram of backscatter change vs. dry reference per month, with the threshold marked.
+    Use coll = wet_coll(roi, sy, orbit, pol, thr) first."""
+    fig, ax = plt.subplots(figsize=(7, 4))
+    cmap = plt.get_cmap("coolwarm")
+    for i, mo in enumerate(months):
+        img = coll.filter(ee.Filter.calendarRange(mo, mo, "month")).select("diff").median()
+        try:
+            h = img.reduceRegion(reducer=ee.Reducer.fixedHistogram(rng[0], rng[1], nbins), geometry=roi,
+                                 scale=scale, maxPixels=int(1e9), bestEffort=True,
+                                 tileScale=4).get("diff").getInfo()
+        except ee.EEException as e:
+            myprint(debug, f"month {mo}: {e}")
+            continue
+        a = np.array(h)
+        ax.plot(a[:, 0], a[:, 1] / a[:, 1].sum(), color=cmap(i / (len(months) - 1)), label=calendar.month_abbr[mo])
+    ax.axvline(thr, color="k", ls="--", label=f"thr {thr} dB")
+    ax.set_xlabel("backscatter change vs. dry reference (dB)")
+    ax.set_ylabel("pixel share")
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+# ---------------- maps -------------------------------------------------------------
+def plot_sar_snow_maps(
+        roi: ee.Geometry, coll: ee.ImageCollection,
+        wet_freq: Callable[[ee.ImageCollection, int], ee.Image],
+        melt_onset: Callable[[ee.ImageCollection, int], ee.Image],
+        sy: int, months: tuple[int, ...] = (12, 1, 2, 3, 4, 5),
+        glacier_mask: ee.Geometry | None = None,
+) -> geemap.Map:
+    """Interactive map: monthly wet-snow frequency layers and melt-onset day."""
+    m = geemap.Map()
+    m.centerObject(roi, 11)
+    vis = {"min": 0, "max": 1, "palette": ["#f0f0f0", "#9ecae1", "#08306b"]}
+    for mo in months:
+        m.addLayer(wet_freq(coll, mo).clip(roi), vis, f"wet freq {calendar.month_abbr[mo]} {sy}", mo == 5)
+    vis_on = {"min": 0, "max": 182, "palette": ["#440154", "#3b528b", "#21908d", "#5dc863", "#fde725"]}
+    m.addLayer(melt_onset(coll, sy).clip(roi), vis_on, f"melt onset (days since Dec 1) {sy}", False)
+    m.add_colorbar(vis, label="wet frequency (0 dry, 1 wet)")
+    for geom, name, col in ((roi, "roi", "black"), (glacier_mask, "glacier", "red")):
+        if geom is not None:
+            m.addLayer(ee.FeatureCollection([ee.Feature(geom)]).style(color=col, fillColor="00000000", width=2), {}, name)
+    return m
+
+
+def show_map(dem: ee.Image, roi: ee.Geometry, glacier_mask: ee.Geometry):
+    """Optional: quick look in a notebook."""
+    m = geemap.Map()
+    m.centerObject(roi, 13)
+    m.addLayer(dem.clip(roi), {"min": 4500, "max": 6500}, "DEM")
+    m.addLayer(glacier_mask.clip(roi), {"palette": "cyan"}, "glacier mask")
+    return m
+
