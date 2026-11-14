@@ -12,7 +12,6 @@ from typing import Literal
 from plotting import *
 import math
 import ee
-import matplotlib.figure
 import numpy as np
 import pandas as pd
 from io_param_functions import myprint
@@ -171,6 +170,7 @@ def season_stats(roi: ee.Geometry, sy: int, orbit: str, glacier_mask: ee.Image |
 
     return _annotate(pd.DataFrame(rows), sy), _annotate(pd.DataFrame(brows, columns=bcols), sy)
 
+
 def all_stats(roi: ee.Geometry, start: str, end: str, glacier_mask: ee.Geometry | None = None,
               orbits: tuple[str, ...] = ORBITS, pol: str = "VV", thr: float = -2.0, scale: float = 30,
               band_h: float = 250.0, min_valid: float = 0.3,
@@ -210,14 +210,10 @@ def monthly_table(df: pd.DataFrame) -> pd.DataFrame:
     return out.reset_index()
 
 
-def make_outputs(df: pd.DataFrame, bdf: pd.DataFrame) -> dict[str, pd.DataFrame | matplotlib.figure.Figure]:
-    """Tables and figures ready for `save_any_tables_and_figures`."""
-    return {"snow_scenes": df, "snow_elev_bands": bdf, "snow_monthly": monthly_table(df),
-            "snow_series": plot_sar_snow_series(df), "snow_season": plot_sar_snow_season(df, day_ticks=DAY_TICKS)}
-
 def show_sar_snow_maps(roi: ee.Geometry, sy: int, orbit: Literal["ASCENDING", "DESCENDING"],
                        **kwargs) -> geemap.Map:
     return plot_sar_snow_maps(roi, wet_coll(roi, sy, orbit), wet_freq, melt_onset, sy, **kwargs)
+
 
 def show_sar_snow_diff_history(roi: ee.Geometry, sy: int, orbit: Literal["ASCENDING", "DESCENDING"], **kwargs):
     return plot_sar_snow_diff_hist(roi, coll=wet_coll(roi, sy, orbit), **kwargs)
