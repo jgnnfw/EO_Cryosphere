@@ -21,7 +21,7 @@ def save_any_tables_and_figures(tables_and_figs: dict[str, pd.DataFrame | matplo
             item.savefig(os.path.join(save_path, name + ".png"), dpi=300)
             myprint(debug, f"{name}.png", end=" ")
         else:
-            myprint(debug, f"\nNot Saved: {name}\nSaving: ", end="")
+            myprint(debug, f"\nNot Saved: {name} of type {type(item)}\nSaving: ", end="")
             continue
 
     myprint(debug, f"\nDone Saving.")
