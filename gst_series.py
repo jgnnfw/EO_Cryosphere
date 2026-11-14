@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 import os
-from gst_functions import *
+from io_param_functions import *
 
 # --------------- module specific config --------------------------------
 BIN_M = 50  # elevation bin height (paper: 50 m)
@@ -195,11 +195,3 @@ def ablation_trend(ts: pd.DataFrame, debug: bool = False) -> pd.DataFrame:
                   f"Theil-Sen {ts_slope * 10:+.2f}, n={len(d)} years")
     return yr
 
-
-def show_map(dem: ee.Image, roi: ee.Geometry, glacier_mask: ee.Geometry):
-    """Optional: quick look in a notebook."""
-    m = geemap.Map()
-    m.centerObject(roi, 13)
-    m.addLayer(dem.clip(roi), {"min": 4500, "max": 6500}, "DEM")
-    m.addLayer(glacier_mask.clip(roi), {"palette": "cyan"}, "glacier mask")
-    return m
