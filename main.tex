@@ -36,7 +36,7 @@ Clearly state the main objectives or research questions of your report.  This wi
 \section{Methodology}
 TASK 1:
 We analyzed the glacier using Sentinel-2 optical imagery (2015–2023) in Google Earth Engine, which offers a 10 to 20 m spatial resolution and a 5-day revisit time suitable for tracking multi-year changes. Because our initial rectangular bounding box included neighboring glaciers and surrounding snow that distorted the measurements, we reduced the area of interest (AOI) to a custom polygon (approximately 3.47 km²) fitted tightly around our specific glacier based on the outlines we created and the GLIMS baseline. We grouped the images into four seasons (Jan–Feb, Mar–Jun, Jul-August, Sep–Dec), filtered for scenes with less than 50\% cloud cover and created median composites. Finally, we masked ice and snow using a set NDSI threshold above 0.4, calculated the pixel area inside the AOI, and clipped historical GLIMS outlines from 2001 and 2010 as baselines.
-To separate the glacier from the surrounding rock and soil, we calculated the Normalized Difference Snow Index ($\text{NDSI} = (\text{Green} - \text{SWIR}) / (\text{Green} + \text{SWIR})$) using the visible green band of Sentinel-2 (B3) and the short-wave infrared band (B11). Because snow and ice strongly reflect visible green light while absorbing SWIR radiation, applying a standard NDSI threshold above 0.4 effectively isolates snow and ice cover \cite{Dozier1989} \cite{Hall1995} (https://doi.org/10.1016/0034-4257(95)00137-P; https://doi.org/10.1016/0034-4257(89)90101-6). 
+To separate the glacier from the surrounding rock and soil, we calculated the Normalized Difference Snow Index ($\text{NDSI} = (\text{Green} - \text{SWIR}) / (\text{Green} + \text{SWIR})$) using the visible green band of Sentinel-2 (B3) and the short-wave infrared band (B11). Because snow and ice strongly reflect visible green light while absorbing SWIR radiation, applying a standard NDSI threshold above 0.4 effectively isolates snow and ice cover ( \cite{Dozier1989} \cite{Hall1995})
 
 In this section, describe how you worked through the different tasks of your project. Outline the main steps you followed to analyse the satellite data in Google Earth Engine, for example, how you selected and filtered the images, which indices or masks you created, and how you extracted the information you needed.
 
@@ -57,39 +57,25 @@ If your project involves seasonal comparisons, you can use or adapt the layout s
 
 \begin{figure}[htbp!]
     \centering
-    \includegraphics[width=0.4\textwidth]{Figures/NDVI_Granada.png}
-    \caption{NDVI of the region around Granada, Spain, for the spring season (March–May) of 2023, derived from Sentinel-2 imagery using Google Earth Engine. The visualization uses a MODIS-style color palette to represent vegetation density.}
+    \includegraphics[width=0.6\textwidth]{Figures/Glacier_all_Years.png}
+    \caption{Sentinel-2 NDSI masks (2015, 2019 \& 2023) and historical GLIMS outlines (orange) clipped to the custom glacier AOI (red).}
     \label{fig:gee_result}
 \end{figure}
 
-
 \begin{figure}[htbp!]
     \centering
-    \begin{subfigure}[b]{0.24\textwidth}
-        \includegraphics[width=\textwidth]{Figures/2024-04-30-00_00_2024-04-30-23_59_Sentinel-2_L2A_False_color.jpg}
-        \caption{Spring}
-        \label{fig:spring}
+    \begin{subfigure}[b]{0.39\textwidth}
+        \includegraphics[width=\textwidth]{Figures/Glacier_all_Years.png}
+        \caption{Sentinel -2 NDSI masks \& GLIMS outlines}
+        \label{fig:GEE-Map NDSI}
     \end{subfigure}
     \hfill
-    \begin{subfigure}[b]{0.24\textwidth}
-        \includegraphics[width=\textwidth]{Figures/2024-07-29-00_00_2024-07-29-23_59_Sentinel-2_L2A_False_color.jpg}
-        \caption{Summer}
-        \label{fig:summer}
+    \begin{subfigure}[b]{0.6\textwidth}
+        \includegraphics[width=\textwidth]{Figures/glacier_trends.png}
+        \caption{Ice (and snow) coverage by season over years}
+        \label{fig:Snow / ice coverage graph}
     \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.24\textwidth}
-        \includegraphics[width=\textwidth]{Figures/2024-11-16-00_00_2024-11-16-23_59_Sentinel-2_L2A_False_color.jpg}
-        \caption{Autumn}
-        \label{fig:autumn}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.24\textwidth}
-        \includegraphics[width=\textwidth]{Figures/2024-02-15-00_00_2024-02-15-23_59_Sentinel-2_L2A_False_color.jpg}
-        \caption{Winter}
-        \label{fig:winter}
-    \end{subfigure}
-    \caption{False-color satellite imagery over Corsica from the Copernicus EO Browser. Images show seasonal variations using near-infrared composites for: (a) Spring, (b) Summer, (c) Autumn, and (d) Winter.}
-    \label{fig:seasonal_changes}
+    \caption{Results from Task one: (a) Sentinel-2 NDSI masks (2015, 2019 \& 2023 and historical GLIMS outlines (orange) clipped to the custom glacier AOI (red), (b) Seasonal NDSI-derived area (2015–2023) compared to the annual seasonal average and the 2010 GLIMS baseline (1.61 km²).}
 \end{figure}
 
 
