@@ -19,7 +19,7 @@ from io_param_functions import myprint
 ORBITS = ("ASCENDING", "DESCENDING")
 # approx. azimuth (deg from north) pointing from the ground towards the satellite at ~28N
 SENSOR_AZ = {"ASCENDING": 261.0, "DESCENDING": 99.0}
-MONTHS = (12, 1, 2, 3, 4, 5)
+MONTHS: tuple[int, ...] = (12, 1, 2, 3, 4, 5)
 DAY_TICKS = ([0, 31, 62, 90, 121, 151, 182],
              ["Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun"])
 
@@ -62,7 +62,7 @@ def get_s1(roi: ee.Geometry, start: str, end: str, orbit: str, pol: str = "VV") 
     return col.map(prep)
 
 
-# ----------------------------------------------------------------------------- classification
+# --------------- classification --------------------------------------------------------------
 def wet_coll(roi: ee.Geometry, sy: int, orbit: str, pol: str = "VV", thr: float = -2.0,
              ref_min: float = -20.0, min_ref: int = 3) -> ee.ImageCollection:
     """Daily classified mosaics of season `sy`: bands `wet` (1/0) and `diff` (dB vs. dry ref)."""
@@ -171,8 +171,10 @@ def season_stats(roi: ee.Geometry, sy: int, orbit: str, glacier_mask: ee.Image |
     return _annotate(pd.DataFrame(rows), sy), _annotate(pd.DataFrame(brows, columns=bcols), sy)
 
 
-def all_stats(roi: ee.Geometry, start: str, end: str, glacier_mask: ee.Geometry | None = None,
-              orbits: tuple[str, ...] = ORBITS, pol: str = "VV", thr: float = -2.0, scale: float = 30,
+def all_stats(roi: ee.Geometry, start: str, end: str,
+              glacier_mask: ee.Geometry | None = None,
+              orbits: tuple[str, ...] = ORBITS, pol: str = "VV",
+              thr: float = -2.0, scale: float = 30,
               band_h: float = 250.0, min_valid: float = 0.3,
               debug: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Run `season_stats` for all season years touching start..end and both orbit directions."""
@@ -198,7 +200,7 @@ def all_stats(roi: ee.Geometry, start: str, end: str, glacier_mask: ee.Geometry 
     return df, bdf
 
 
-def monthly_table(df: pd.DataFrame) -> pd.DataFrame:
+def monthly_mean_table(df: pd.DataFrame) -> pd.DataFrame:
     """Mean wet fraction and backscatter change by season year, month and orbit."""
     if df.empty:
         return pd.DataFrame(columns=["sy", "month", "orbit", "wet", "diff", "n"])
@@ -211,8 +213,11 @@ def monthly_table(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def show_sar_snow_maps(roi: ee.Geometry, sy: int, orbit: Literal["ASCENDING", "DESCENDING"],
-                       **kwargs) -> geemap.Map:
-    return plot_sar_snow_maps(roi, wet_coll(roi, sy, orbit), wet_freq, melt_onset, sy, **kwargs)
+                       months: tuple[int, ...] = MONTHS, glacier_mask: ee.Geometry | None = None) -> geemap.Map:
+    coll = wet_coll(roi, sy, orbit)
+    wet_freqs = {mo:wet_freq(coll, mo) for mo in months}
+    m_onset = melt_onset(coll, sy)
+    return plot_sar_snow_maps(roi, coll, wet_freqs, m_onset, sy, glacier_mask=glacier_mask)
 
 
 def show_sar_snow_diff_history(roi: ee.Geometry, sy: int, orbit: Literal["ASCENDING", "DESCENDING"], **kwargs):

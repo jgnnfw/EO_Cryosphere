@@ -288,19 +288,19 @@ def plot_sar_snow_diff_hist(roi: ee.Geometry, coll: ee.ImageCollection,
 # ---------------- maps -------------------------------------------------------------
 def plot_sar_snow_maps(
         roi: ee.Geometry, coll: ee.ImageCollection,
-        wet_freq: Callable[[ee.ImageCollection, int], ee.Image],
-        melt_onset: Callable[[ee.ImageCollection, int], ee.Image],
-        sy: int, months: tuple[int, ...] = (12, 1, 2, 3, 4, 5),
+        wet_freqs: dict[int, ee.Image],
+        melt_onset: ee.Image,
+        sy: int,
         glacier_mask: ee.Geometry | None = None,
 ) -> geemap.Map:
     """Interactive map: monthly wet-snow frequency layers and melt-onset day."""
     m = geemap.Map()
     m.centerObject(roi, 11)
     vis = {"min": 0, "max": 1, "palette": ["#f0f0f0", "#9ecae1", "#08306b"]}
-    for mo in months:
-        m.addLayer(wet_freq(coll, mo).clip(roi), vis, f"wet freq {calendar.month_abbr[mo]} {sy}", mo == 5)
+    for mo, wet_freq in wet_freqs.items():
+        m.addLayer(wet_freq.clip(roi), vis, f"wet freq {calendar.month_abbr[mo]} {sy}", mo == 5)
     vis_on = {"min": 0, "max": 182, "palette": ["#440154", "#3b528b", "#21908d", "#5dc863", "#fde725"]}
-    m.addLayer(melt_onset(coll, sy).clip(roi), vis_on, f"melt onset (days since Dec 1) {sy}", False)
+    m.addLayer(melt_onset.clip(roi), vis_on, f"melt onset (days since Dec 1) {sy}", False)
     m.add_colorbar(vis, label="wet frequency (0 dry, 1 wet)")
     for geom, name, col in ((roi, "roi", "black"), (glacier_mask, "glacier", "red")):
         if geom is not None:
