@@ -38,14 +38,12 @@ TASK 1:
 We analyzed the glacier using Sentinel-2 optical imagery (2015–2023) in Google Earth Engine, which offers a 10 to 20 m spatial resolution and a 5-day revisit time suitable for tracking multi-year changes. Because our initial rectangular bounding box included neighboring glaciers and surrounding snow that distorted the measurements, we reduced the area of interest (AOI) to a custom polygon (approximately 3.47 km²) fitted tightly around our specific glacier based on the outlines we created and the GLIMS baseline. We grouped the images into four seasons (Jan–Feb, Mar–Jun, Jul-August, Sep–Dec), filtered for scenes with less than 50\% cloud cover and created median composites. Finally, we masked ice and snow using a set NDSI threshold above 0.4, calculated the pixel area inside the AOI, and clipped historical GLIMS outlines from 2001 and 2010 as baselines.
 To separate the glacier from the surrounding rock and soil, we calculated the Normalized Difference Snow Index ($\text{NDSI} = (\text{Green} - \text{SWIR}) / (\text{Green} + \text{SWIR})$) using the visible green band of Sentinel-2 (B3) and the short-wave infrared band (B11). Because snow and ice strongly reflect visible green light while absorbing SWIR radiation, applying a standard NDSI threshold above 0.4 effectively isolates snow and ice cover ( \cite{Dozier1989} \cite{Hall1995})
 
+TASK TEMP:
+We analyzed surface temperature patterns using MODIS/Terra 8-day Land Surface Temperature imagery (\texttt{MODIS/061/MOD11A2}, 2000--2026) in Google Earth Engine, which provides a 1\,km spatial resolution suitable for capturing regional and seasonal thermal regimes. Unlike the tight glacier polygon used in Task 1, we used the rectangular bounding box of our custom AOI to capture temperature contrasts between the glaciated terrain and surrounding ice-free valleys, overlaying current GLIMS outlines for reference. We grouped the daytime temperature scenes (\texttt{LST\_Day\_1km}) into four climatological seasons (Winter: DJF, Spring: MAM, Summer: JJA, and Autumn: SON) and calculated multi-year mean composites. To obtain physical temperatures in degrees Celsius, we converted the raw digital numbers (DN) using the standard MODIS scale factor and Kelvin offset ($\text{LST} = \text{DN} \times 0.02 - 273.15$). Finally, to examine local altitudinal cooling along the target glacier, we defined a six-point south--north transect ($\sim 81.776^\circ\text{E}$, $30.200^\circ\text{N}$ to $30.226^\circ\text{N}$) and extracted the seasonal mean LST values at a 1000\,m sampling scale.
+
 In this section, describe how you worked through the different tasks of your project. Outline the main steps you followed to analyse the satellite data in Google Earth Engine, for example, how you selected and filtered the images, which indices or masks you created, and how you extracted the information you needed.
 
 Some tasks also ask you to explain how the Earth Observation systems you used actually work. In those cases, include a short explanation of the system you chose, what kind of sensor it uses (e.g. optical, radar, or thermal), what its spatial and temporal resolution is, and why it is a good fit for your analysis. The goal here is to make your approach understandable for someone who was not part of your group or had a different report topic.
-
-
-\begin{itemize}
-    \item Reduced AOI so that no snow areas that are around the glacier are measured as glacier area.
-\end{itemize}
 
 \section{Results}
 TASK 1:
@@ -57,16 +55,9 @@ If your project involves seasonal comparisons, you can use or adapt the layout s
 
 \begin{figure}[htbp!]
     \centering
-    \includegraphics[width=0.6\textwidth]{Figures/Glacier_all_Years.png}
-    \caption{Sentinel-2 NDSI masks (2015, 2019 \& 2023) and historical GLIMS outlines (orange) clipped to the custom glacier AOI (red).}
-    \label{fig:gee_result}
-\end{figure}
-
-\begin{figure}[htbp!]
-    \centering
     \begin{subfigure}[b]{0.39\textwidth}
         \includegraphics[width=\textwidth]{Figures/Glacier_all_Years.png}
-        \caption{Sentinel -2 NDSI masks \& GLIMS outlines}
+        \caption{Sentinel 2 NDSI masks \& GLIMS outlines}
         \label{fig:GEE-Map NDSI}
     \end{subfigure}
     \hfill
@@ -78,6 +69,12 @@ If your project involves seasonal comparisons, you can use or adapt the layout s
     \caption{Results from Task one: (a) Sentinel-2 NDSI masks (2015, 2019 \& 2023 and historical GLIMS outlines (orange) clipped to the custom glacier AOI (red), (b) Seasonal NDSI-derived area (2015–2023) compared to the annual seasonal average and the 2010 GLIMS baseline (1.61 km²).}
 \end{figure}
 
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{Figures/Glacier_all_Years.png}
+    \caption{Sentinel-2 NDSI masks (2015, 2019 \& 2023) and historical GLIMS outlines (orange) clipped to the custom glacier AOI (red).}
+    \label{fig:gee_result}
+\end{figure}
 
 \section{Discussion and Conclusion}
 TASK 1:
