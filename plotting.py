@@ -11,6 +11,7 @@ import matplotlib.figure
 from matplotlib.patches import Patch
 from io_param_functions import *
 import matplotlib.dates as mdates
+from matplotlib.lines import Line2D
 
 #---------------- plot functions returning matplotlig.figure.Figure ------------------------------------------
 def plot_histogram_image_collection(
@@ -477,9 +478,10 @@ def plot_gst_line_seasons(
     arrays: dict[str, np.ndarray],
     extent: tuple[float, float, float, float],
     season_count: dict[str, int],
+    aoi: ee.Geometry,
     vmin: float = -25,
     vmax: float = 15,
-    aoi: ee.Geometry | None = None,
+    glims: ee.FeatureCollection | None = None,
 ) -> matplotlib.figure.Figure:
     """One LST map per season. `extent` = (lon_min, lon_max, lat_min, lat_max)."""
     labels = {"Winter_DJF": "Winter (DJF)", "Spring_MAM": "Spring (MAM)",
@@ -488,15 +490,61 @@ def plot_gst_line_seasons(
     axes = np.atleast_1d(axes)
     im = None
 
+    def _rings(geometry: dict) -> list[list[list[float]]]:
+        """All rings (exterior + holes) of a GeoJSON Polygon/MultiPolygon."""
+        if geometry["type"] == "Polygon":
+            return geometry["coordinates"]
+        if geometry["type"] == "MultiPolygon":
+            return [ring for poly in geometry["coordinates"] for ring in poly]
+        raise ValueError(f"Unsupported geometry type: {geometry['type']}")
+
+    def _polys(geom: dict) -> list:
+        """Rings of Polygon/MultiPolygon; recurses into GeometryCollection, ignores lines/points."""
+        if geom["type"] == "GeometryCollection":
+            return [r for g in geom["geometries"] for r in _polys(g)]
+        if geom["type"] in ("Polygon", "MultiPolygon"):
+            return _rings(geom)
+        return []
+
+    aoi_rings = _rings(aoi.getInfo()) if aoi is not None else []
+    glims_rings = []
+    if glims is not None:
+        lon_min, lon_max, lat_min, lat_max = extent
+        bbox = ee.Geometry.Rectangle([lon_min, lat_min, lon_max, lat_max])
+        in_view = glims.filterBounds(bbox)
+        newest = in_view.aggregate_max("src_date").getInfo()
+
+        if newest is not None:
+            sel = in_view.filter(ee.Filter.eq("src_date", newest))
+            clipped = sel.geometry().intersection(aoi, ee.ErrorMargin(1)).getInfo()
+            glims_rings = _polys(clipped)
+
     for ax, (name, arr) in zip(axes, arrays.items()):
         im = ax.imshow(arr, cmap="RdYlBu_r", vmin=vmin, vmax=vmax, extent=extent, aspect="auto")
-        if aoi is not None:
-            pass
+
+        for ring in glims_rings:
+            xs, ys = zip(*[(pt[0], pt[1]) for pt in ring])
+            ax.plot(xs, ys, color="purple", linewidth=1.5, zorder=3)
+        for ring in aoi_rings:
+            xs, ys = zip(*[(pt[0], pt[1]) for pt in ring])
+            ax.plot(xs, ys, color="tab:green", linewidth=1.5, zorder=4)
+        ax.set_xlim(extent[:2])
+        ax.set_ylim(extent[2:])
+
         ax.set_title(f"{labels.get(name, name)}\n($n={season_count.get(name, 0)}$ scenes)")
         ax.set_xlabel("Longitude (°E)")
 
     axes[0].set_ylabel("Latitude (°N)")
     fig.colorbar(im, ax=axes.ravel().tolist(), shrink=0.85, pad=0.02).set_label("Mean surface temperature (°C)")
+
+    handles = []
+    if aoi is not None:
+        handles.append(Line2D([], [], color="tab:green", lw=1.5, label="AOI"))
+    if glims is not None:
+        handles.append(Line2D([], [], color="purple", lw=1.5, label="GLIMS glacier outline (2010) clipped to AOI"))
+    if handles:
+        fig.legend(handles=handles, loc="lower center", ncol=len(handles), bbox_to_anchor=(0.5, -0.05))
+
     fig.suptitle("Spatial variability of glacier surface temperature across seasons", y=1.05, fontsize=13)
     return fig
 
