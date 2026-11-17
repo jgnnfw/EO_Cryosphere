@@ -333,7 +333,11 @@ def map_glacier_area(
     m = geemap.Map(basemap="HYBRID")
     m.centerObject(roi, zoom)
     for i, (year, mask) in enumerate(sorted(masks.items())):
-        m.addLayer(mask, {"palette": [colors[i % len(colors)]]}, f"Snow/ice {year}")
+        color = colors[i % len(colors)]
+        vectors = mask.selfMask().toInt().reduceToVectors(geometry=mask.geometry(), scale=30, geometryType='polygon',
+                                                          eightConnected=True, maxPixels=1e13)
+        geometry = vectors.geometry().dissolve().simplify(30)
+        m.addLayer(geometry, {"color": color}, f"Snow/ice outline {year}")
     if glacier_mask is not None:
         outline = ee.Image().paint(ee.FeatureCollection([ee.Feature(glacier_mask)]), 1, 2)
         m.addLayer(outline, {"palette": ["orange"]}, "GLIMS outline")
@@ -342,27 +346,53 @@ def map_glacier_area(
     return m
 
 
-def plot_glacier_area_seasons(area_df: pd.DataFrame) -> matplotlib.figure.Figure:
+def plot_glacier_area_seasons(area_df: pd.DataFrame,
+                              glims_areas: pd.DataFrame | None = None,
+                              mean_line: bool = True,
+                              min_year_inclusive: int | None = None) -> matplotlib.figure.Figure:
     """Snow/ice area per year, one line per season. Needs [season, year, area_km2]."""
+
+    glims_ref_year, glims_ref_area = None, None
+
+    if min_year_inclusive is not None:
+        area_df = area_df[area_df["year"] >= min_year_inclusive]
+        if glims_areas is not None:
+            if glims_areas["year"].max() < min_year_inclusive:
+                # all GLIMS data is older than the window -> use latest as flat reference
+                idx = glims_areas["year"].idxmax()
+                glims_ref_year, glims_ref_area = glims_areas.loc[idx, ["year", "area"]]
+                glims_areas = None  # don't also plot the (empty) line
+            else:
+                glims_areas = glims_areas[glims_areas["year"] >= min_year_inclusive]
+
     colors = ["#1f77b4", "#2ca02c", "#d62728", "#ff7f0e", "#9467bd", "#8c564b", "#17becf", "#7f7f7f"]
-    markers = ["o", "s", "^", "D", "v", "P", "X", "*"]
     fig, ax = plt.subplots(figsize=(12, 7))
     for i, (season, grp) in enumerate(area_df.groupby("season", sort=False)):
         grp = grp.dropna(subset=["area_km2"])
         if len(grp) > 0:
-            ax.plot(grp["year"], grp["area_km2"], marker=markers[i % len(markers)],
+            ax.plot(grp["year"], grp["area_km2"], marker="o",
                     color=colors[i % len(colors)], linewidth=2, markersize=7, label=season)
-    mean = area_df.groupby("year")["area_km2"].mean()
-    ax.plot(mean.index, mean.values,
-            marker=markers[area_df["season"].nunique() % len(markers)],
-            color="black", linewidth=3, markersize=7, label="Mean of seasons")
-    ax.set_title(f"Snow and ice cover by season (Median NDSI > {area_df.attrs.get("threshold", 0.4)})",
+
+    if mean_line:
+        mean = area_df.groupby("year")["area_km2"].mean()
+        ax.plot(mean.index, mean.values,
+                marker="D",
+                color="black", linewidth=3, markersize=7, label="Mean of seasons")
+
+    if glims_areas is not None:
+        ax.plot(glims_areas["year"], glims_areas["area"], color="tab:blue", linestyle=":", linewidth=2, label="GLIMS reference areas")
+
+    if glims_ref_area is not None:
+        ax.axhline(glims_ref_area, color="tab:blue", linestyle=":", linewidth=2, label=f"GLIMS reference area ({int(glims_ref_year)})")
+
+    ax.set_title(f"Snow and ice cover by season (Median NDSI > {area_df.attrs.get('threshold', 0.4)})",
                  fontsize=14, fontweight="bold")
+
     ax.set_xlabel("Year")
     ax.set_ylabel("Area (km²)")
     ax.set_xticks(sorted(area_df["year"].unique()))
     ax.grid(linestyle="--", alpha=0.6)
-    ax.legend(title="Period", loc="lower left")
+    ax.legend(title="Period")
     fig.tight_layout()
     return fig
 
@@ -415,6 +445,7 @@ def map_gst_line_map(
 def plot_gst_line_profile(
     profile_df: pd.DataFrame,
     season_count: dict[str, int],
+    glacier_beginning_m: float | None = None,
     glacier_end_m: float | None = None,
 ) -> matplotlib.figure.Figure:
     """Seasonal LST along the centerline. Needs [distance_m, Winter_DJF, ...]."""
@@ -424,9 +455,14 @@ def plot_gst_line_profile(
     for col, label, color in seasons:
         if col in profile_df.columns:
             ax.plot(profile_df["distance_m"], profile_df[col], marker="o", markersize=4, linewidth=2,
-                    color=color, label=f"{label} ($n_{{scenes}}={season_count.get(col, 0)}$)")
+                    color=color, label=f"{label} ($n={season_count.get(col, 0)}\\,$scenes)")
     ax.axhline(0, color="gray", linestyle="--", linewidth=1, label="Melting point (0 °C)")
-    if glacier_end_m is not None:
+    if glacier_beginning_m is not None and glacier_end_m is not None:
+        ax.axvline(glacier_beginning_m, color="black", linestyle=":", label="Beginning/End of glacier")
+        ax.axvline(glacier_end_m, color="black", linestyle=":")
+    elif glacier_beginning_m is not None:
+        ax.axvline(glacier_beginning_m, color="black", linestyle=":", label="Beginning of glacier")
+    elif glacier_end_m is not None:
         ax.axvline(glacier_end_m, color="black", linestyle=":", label="End of glacier")
     ax.set_title("Seasonal surface temperature along glacier centerline")
     ax.set_xlabel("Distance along centerline from top to bottom (m)")
@@ -443,6 +479,7 @@ def plot_gst_line_seasons(
     season_count: dict[str, int],
     vmin: float = -25,
     vmax: float = 15,
+    aoi: ee.Geometry | None = None,
 ) -> matplotlib.figure.Figure:
     """One LST map per season. `extent` = (lon_min, lon_max, lat_min, lat_max)."""
     labels = {"Winter_DJF": "Winter (DJF)", "Spring_MAM": "Spring (MAM)",
@@ -450,10 +487,14 @@ def plot_gst_line_seasons(
     fig, axes = plt.subplots(1, len(arrays), figsize=(14, 5), dpi=300, sharey=True)
     axes = np.atleast_1d(axes)
     im = None
+
     for ax, (name, arr) in zip(axes, arrays.items()):
         im = ax.imshow(arr, cmap="RdYlBu_r", vmin=vmin, vmax=vmax, extent=extent, aspect="auto")
+        if aoi is not None:
+            pass
         ax.set_title(f"{labels.get(name, name)}\n($n={season_count.get(name, 0)}$ scenes)")
         ax.set_xlabel("Longitude (°E)")
+
     axes[0].set_ylabel("Latitude (°N)")
     fig.colorbar(im, ax=axes.ravel().tolist(), shrink=0.85, pad=0.02).set_label("Mean surface temperature (°C)")
     fig.suptitle("Spatial variability of glacier surface temperature across seasons", y=1.05, fontsize=13)
@@ -474,7 +515,7 @@ def plot_gst_line_timeseries(
     ax.plot(curve_df["date"], curve_df["fit"], "--", color="tab:green",
             label=f"Seasonal model ({stats['sea_per_decade']:+.2f} °C/decade, $R^2 = {stats['sea_r2']:.3f}$)")
     ax.axhline(0, color="gray", linestyle="--", linewidth=1)
-    ax.set_title("Glacier surface temperature time series")
+    ax.set_title("Mean glacier surface temperature time series")
     ax.set_xlabel("Date")
     ax.set_ylabel("Mean surface temperature (°C)")
     ax.legend()

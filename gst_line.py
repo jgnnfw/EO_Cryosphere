@@ -76,11 +76,6 @@ def season_count(lst: ee.ImageCollection, debug: bool = False) -> dict[str, int]
     return counts
 
 
-def study_region(roi: ee.Geometry, glacier_mask: ee.Geometry | None = None) -> ee.Geometry:
-    """roi ∩ glacier_mask, or roi if no mask."""
-    return roi if glacier_mask is None else glacier_mask.intersection(roi, 1)
-
-
 def temp_profile(
     stack: ee.Image,
     line: ee.Geometry,

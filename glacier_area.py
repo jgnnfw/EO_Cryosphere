@@ -1,7 +1,9 @@
 """Glacier snow/ice area from Sentinel-2 NDSI (Google Earth Engine)."""
+from typing import Literal
+
 import ee
 import pandas as pd
-from io_param_functions import myprint
+from io_param_functions import myprint, study_region
 
 S2_TOA = "COPERNICUS/S2_HARMONIZED"
 S2_BOA = "COPERNICUS/S2_SR_HARMONIZED" # atmosphere corrected
@@ -146,3 +148,30 @@ def area_by_month(
         myprint(debug, f"{year}-{month:02d}: {area}")
         rows.append({"month": month, "area_km2": area})
     return pd.DataFrame(rows).astype({"area_km2": float})
+
+
+def glims_area_by_year(glims: ee.FeatureCollection, roi: ee.Geometry,
+                       year_field: Literal["src_date", "anlys_time"] = "src_date",
+                       error_margin: float = 10, debug: bool = False,
+                       min_year_inclusive: float | None = None) -> pd.DataFrame:
+    """Glacier area [km²] per year: GLIMS outlines intersected with roi."""
+    glims = glims.filterBounds(roi)
+    feats = glims.toList(glims.size())
+
+    area_by_year: dict[int, float] = {}
+    for i in range(glims.size().getInfo()):
+        f = ee.Feature(feats.get(i))
+        geom = study_region(f.geometry(), roi)
+        date = f.get(year_field).getInfo()
+        area = geom.area(error_margin).divide(1e6).getInfo()
+        if date is None or area is None or area < 1e-6:
+            continue
+        year = int(str(date)[:4])
+        if min_year_inclusive is not None and year >= min_year_inclusive:
+            area_by_year[year] = area_by_year.get(year, 0.0) + area
+
+        myprint(debug, f"{year}: {area:.2f}; ", end="")
+
+    myprint(debug)
+
+    return pd.DataFrame(sorted(area_by_year.items()), columns=["year", "area"])
