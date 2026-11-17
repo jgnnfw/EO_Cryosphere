@@ -311,7 +311,7 @@ def plot_sar_snow_maps(
     return m
 
 
-def show_dem_map(dem: ee.Image, roi: ee.Geometry, glacier_mask: ee.Geometry):
+def map_dem_and_aoi(dem: ee.Image, roi: ee.Geometry, glacier_mask: ee.Geometry):
     """Optional: quick look in a notebook."""
     m = geemap.Map()
     m.centerObject(roi, 13)
@@ -321,7 +321,7 @@ def show_dem_map(dem: ee.Image, roi: ee.Geometry, glacier_mask: ee.Geometry):
 
 
 # --- glacier_area -----------------------------------------------------------
-def plot_glacier_area_map(
+def map_glacier_area(
     masks: dict[int, ee.Image],
     roi: ee.Geometry,
     glacier_mask: ee.Geometry | None = None,
@@ -389,7 +389,7 @@ def plot_glacier_area_months(month_df: pd.DataFrame, year: int) -> matplotlib.fi
 
 
 # --- gst_line ---------------------------------------------------------------
-def plot_gst_line_map(
+def map_gst_line_map(
     stack: ee.Image,
     roi: ee.Geometry,
     glacier_mask: ee.Geometry | None = None,
@@ -429,7 +429,7 @@ def plot_gst_line_profile(
     if glacier_end_m is not None:
         ax.axvline(glacier_end_m, color="black", linestyle=":", label="End of glacier")
     ax.set_title("Seasonal surface temperature along glacier centerline")
-    ax.set_xlabel("Distance along centerline from upper glacier (m)")
+    ax.set_xlabel("Distance along centerline from top to bottom (m)")
     ax.set_ylabel("Mean surface temperature (°C)")
     ax.legend()
     ax.grid(True, alpha=0.3)

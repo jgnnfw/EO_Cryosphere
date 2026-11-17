@@ -3,7 +3,6 @@ import ee
 import matplotlib.dates as mdates
 import numpy as np
 import pandas as pd
-
 from io_param_functions import lstsq_sin_for_years, myprint
 
 L8 = "LANDSAT/LC08/C02/T1_L2"
