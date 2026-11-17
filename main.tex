@@ -7,7 +7,7 @@
 % Title and Author Information
 %================
 
-\title{{\titlefont \textbf{Group Project: EO Applications in Cyrosphere}}}
+\title{{\titlefont \textbf{Earth Observation Group Project:\\Analysis of a Glacier in Nepal}}}
 \author{Stojanovic Andrew \and Rechberger Mike \and Ravagni Alexander}
 \date{\today}
 
@@ -37,11 +37,14 @@ Clearly state the main objectives or research questions of your report.  This wi
 \section{Methodology}
 
 \subsection{Glacier area}
-We analyzed the glacier using Sentinel-2 optical imagery (2015–2023) in Google Earth Engine, which offers a 10 to 20 m spatial resolution and a 5-day revisit time suitable for tracking multi-year changes. Because our initial rectangular bounding box included neighboring glaciers and surrounding snow that distorted the measurements, we reduced the area of interest (AOI) to a custom polygon (approximately 3.47 km²) fitted tightly around our specific glacier based on the outlines we created and the GLIMS baseline. We grouped the images into four seasons (Jan–Feb, Mar–Jun, Jul-August, Sep–Dec), filtered for scenes with less than 50\% cloud cover and created median composites. Finally, we masked ice and snow using a set NDSI threshold above 0.4, calculated the pixel area inside the AOI, and clipped historical GLIMS outlines from 2001 and 2010 as baselines.
-To separate the glacier from the surrounding rock and soil, we calculated the Normalized Difference Snow Index ($\text{NDSI} = (\text{Green} - \text{SWIR}) / (\text{Green} + \text{SWIR})$) using the visible green band of Sentinel-2 (B3) and the short-wave infrared band (B11). Because snow and ice strongly reflect visible green light while absorbing SWIR radiation, applying a standard NDSI threshold above 0.4 effectively isolates snow and ice cover \citep{Dozier1989, Hall1995}.
+We analyzed the glacier using Sentinel-2 surface reflectance optical imagery (\numrange{2015}{2023}) in Google Earth Engine, which offers a \qtyrange{10}{20}{\m} spatial resolution, an atmospheric correction and a 5-day revisit time suitable for tracking multi-year changes. Because our initial rectangular bounding box included neighboring glaciers and surrounding snow that distorted the measurements, we reduced the area of interest (AOI) to a custom polygon (approximately \qty{3.47}{\km\squared}) fitted tightly around our specific glacier. We grouped the images into four seasons (Jan.-Feb., Mar.-Jun,, Jul.-Aug,, Sep.-Dec.) and filtered for scenes with less than \qty{50}{\percent} cloud cover. To separate the glacier from the surrounding rock and soil, we calculated the median Normalized Difference Snow Index (NDSI) using the visible green band of Sentinel-2 (B3) and the short-wave infrared (SWIR) band (B11). Because snow and ice strongly reflect visible green light while absorbing SWIR radiation, applying a standard NDSI threshold above 0.4 effectively isolates snow and ice cover \citep{Dozier1989, Hall1995}.
+\begin{equation}
+    \mathrm{NDSI} = \frac{\text{Green} - \text{SWIR}}  {\text{Green} + \text{SWIR}},\qquad \mathrm{Median}(\mathrm{NDSI}) > 0.4 \implies \text{Snow or Ice}
+    \label{eq:NDSI}
+\end{equation}
 
 \subsection{Glacier surface temperature}
-We analyzed surface temperature patterns using MODIS/Terra 8-day Land Surface Temperature imagery (\texttt{MODIS/061/MOD11A2}, 2000--2026) in Google Earth Engine, which provides a 1\,km spatial resolution suitable for capturing regional and seasonal thermal regimes. Unlike the tight glacier polygon used in Task 1, we used the rectangular bounding box of our custom AOI to capture temperature contrasts between the glaciated terrain and surrounding ice-free valleys, overlaying current GLIMS outlines for reference. We grouped the daytime temperature scenes (\texttt{LST\_Day\_1km}) into four climatological seasons (Winter: DJF, Spring: MAM, Summer: JJA, and Autumn: SON) and calculated multi-year mean composites. To obtain physical temperatures in degrees Celsius, we converted the raw digital numbers (DN) using the standard MODIS scale factor and Kelvin offset ($\text{LST} = \text{DN} \times 0.02 - 273.15$). Finally, to examine local altitudinal cooling along the target glacier, we defined a six-point south--north transect ($\sim 81.776^\circ\text{E}$, $30.200^\circ\text{N}$ to $30.226^\circ\text{N}$) and extracted the seasonal mean LST values at a \qty{150}{m} sampling distance.
+We analyzed surface temperature patterns using Landsat Collection 2 Surface Temperature in Google Earth Engine, which provides a \qty{30}{\m} spatial resolution suitable for capturing regional and seasonal thermal regimes \citep{earth_resources_observation_and_science_eros_center_landsat_2020}. Unlike the tight glacier polygon used in Task 1, we used the rectangular bounding box of our custom AOI to capture temperature contrasts between the glaciated terrain and surrounding ice-free valleys, overlaying current GLIMS outlines for reference. We grouped the daytime temperature scenes (\texttt{LST\_Day\_1km}) into four climatological seasons (Winter: DJF, Spring: MAM, Summer: JJA, and Autumn: SON) and calculated multi-year mean composites. To obtain physical temperatures in degrees Celsius, we converted the raw digital numbers (DN) using the standard MODIS scale factor and Kelvin offset ($\text{LST} = \text{DN} \times 0.02 - 273.15$). Finally, to examine local altitudinal cooling along the target glacier, we defined a six-point south--north transect ($\sim 81.776^\circ\text{E}$, $30.200^\circ\text{N}$ to $30.226^\circ\text{N}$) and extracted the seasonal mean LST values at a \qty{150}{m} sampling distance.
 
 \subsection{Wet and dry snow}
 
@@ -54,12 +57,13 @@ Some tasks also ask you to explain how the Earth Observation systems you used ac
 \subsection{Glacier area}
 Clipping the NDSI mask onto our refined polygon successfully isolates the main glacier from adjacent glaciers on the surrounding ridges, as shown in Figure 1. Within this AOI, the historical GLIMS baselines measure 1.87 km² in 2001 and 1.61 km² in 2010. Across our 2015–2023 time series (Figure 2), winter and spring areas stay near the maximum AOI limit (approximately 2.6–3.47 km²), while July–August values drop sharply down to 0.03 km² in 2017. In the post-monsoon period (Sep–Dec), the measured area lies between 1.57 and 2.04 km² in most years, except for spikes to around 3.40 km² in 2021 and 2022 due to early and heavy snowfall in the region during those years.
 
-In this section, present the key results of your analysis. Include the maps, plots, and figures you created during your work. Try to structure the results in a logical order. You can for example make subsections for the different tasks.
+(VORLAGE: In this section, present the key results of your analysis. Include the maps, plots, and figures you created during your work. Try to structure the results in a logical order. You can for example make subsections for the different tasks.
 
-If your project involves seasonal comparisons, you can use or adapt the layout shown in Figure~\ref{fig:seasonal_changes} to show changes over time using satellite imagery. Make sure all figures have good captions and are referred to in the text. You can also include screenshots or exports from your Google Earth Engine scripts. An example is shown in Figure~\ref{fig:gee_result}, but feel free to format and design your own visual outputs based on what fits your analysis best.
+If your project involves seasonal comparisons, you can use or adapt the layout shown in Figure~\ref{fig:seasonal_changes} to show changes over time using satellite imagery. Make sure all figures have good captions and are referred to in the text. You can also include screenshots or exports from your Google Earth Engine scripts. An example is shown in Figure~\ref{fig:gee_result}, but feel free to format and design your own visual outputs based on what fits your analysis best.)
 
 \begin{figure}[htbp!]
     \centering
+    \hfill
     \begin{subfigure}[b]{0.45\textwidth}
         \includegraphics[width=\textwidth]{Figures/Glacier_all_Years.png}
         \caption{Sentinel 2 NDSI masks \& GLIMS outlines}
@@ -68,9 +72,10 @@ If your project involves seasonal comparisons, you can use or adapt the layout s
     \hfill
     \begin{subfigure}[b]{0.45\textwidth}
         \includegraphics[width=\textwidth]{results/glacier_area/area_seasons_fig.png}
-        \caption{Ice (and snow) coverage by season over years}
+        \caption{Ice and snow coverage by season}
         \label{fig:Snow / ice coverage graph}
     \end{subfigure}
+    \hfill
     \caption{Results from Task one: (a) Sentinel-2 NDSI masks (2015, 2019 \& 2023 and historical GLIMS outlines (orange) clipped to the custom glacier AOI (red), (b) Seasonal NDSI-derived area (2015–2023) compared to the annual seasonal average and the 2010 GLIMS baseline (1.61 km²).}
 \end{figure}
 
@@ -113,7 +118,8 @@ Seasonal mean daytime Land Surface Temperature (LST) across the bounding box exh
     \label{fig:gee_result}
 \end{figure}
 
-\section{Discussion and Conclusion}
+\section{Discussion}
+
 \subsection{Glacier area}
 In snow-free post-monsoon periods, the glacier area (1.57–2.04 km²) remains close to the 2010 GLIMS baseline (1.61 km²), suggesting relative stability since 2010 after retreating from 1.87 km² in 2001. In contrast, the extreme seasonal swings of over 3 km² do not reflect real ice changes, but rather weather and optical sensor limitations. Because optical NDSI cannot separate fresh snow from glacier ice, winter snow saturates the entire AOI (~3.47 km²), and in years where snow persists all year or falls early in autumn (2021–2022), the true glacier area cannot be correctly measured. Conversely, heavy summer monsoon clouds block the sensor and have low NDSI values, skewing July–August values artificially toward 0 km² (down to 0.03 km² in 2017). Occasional satellite swath edges, winter shadows, and rock debris on the glacier tongue also cause missing pixels or drop NDSI values below 0.4.
 
@@ -139,6 +145,16 @@ You may also suggest how the analysis could be improved in future work, for exam
 \begin{itemize}
     \item Limitation of area by using optical: In years where snow persist the whole year, glacier area cannot be correctly measured.
 \end{itemize}
+
+(VORLAGE: Based on your results, discuss what they reveal about the environmental event or process you analysed. Were your initial research questions and hypotheses confirmed? Point out any unexpected patterns, uncertainties, or limitations in your analysis,for example, issues with data quality, sensor characteristics, or classification accuracy.
+
+Try to connect your findings to a broader context. How do they compare with previous studies or official sources? What are the implications of your observations for understanding natural hazards, climate-related changes, or land cover dynamics?)
+
+\section{Conclusion}
+
+(VORLAGE: To wrap up your report, summarise the key takeaways of your project. Highlight the most important results, how they contribute to answering your research questions, and what you learned during the process.
+
+You may also suggest how the analysis could be improved in future work, for example, by using additional data, trying different methods, or applying the same approach to another region or time period.)
 
 
 \bibliographystyle{apalike-ejor}
