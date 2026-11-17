@@ -74,18 +74,59 @@ If your project involves seasonal comparisons, you can use or adapt the layout s
     \caption{Results from Task one: (a) Sentinel-2 NDSI masks (2015, 2019 \& 2023 and historical GLIMS outlines (orange) clipped to the custom glacier AOI (red), (b) Seasonal NDSI-derived area (2015–2023) compared to the annual seasonal average and the 2010 GLIMS baseline (1.61 km²).}
 \end{figure}
 
+\subsection{Glacier surface temperature}
+Seasonal mean daytime Land Surface Temperature (LST) across the bounding box exhibits a pronounced annual cycle (Figure~\ref{fig:lst_maps}). Temperatures are lowest in Winter (DJF, approximately $-18\,^\circ\text{C}$ to $-12\,^\circ\text{C}$), moderate during Spring (MAM, $-10\,^\circ\text{C}$ to $-2\,^\circ\text{C}$) and Autumn (SON, $-5\,^\circ\text{C}$ to $+2\,^\circ\text{C}$), and peak in Summer (JJA, $+2\,^\circ\text{C}$ to $+10\,^\circ\text{C}$). Across all seasons---and most visibly during JJA---glaciated surfaces within the GLIMS outlines remain cooler than the surrounding ice-free terrain and lower valley slopes. Along the south--north glacier transect, daytime LST decreases consistently with increasing latitude (elevation) across all four seasons (Figure~\ref{fig:lst_transect}), with positive surface temperatures restricted mainly to JJA on the lower glacier tongue while the upper accumulation zone remains near or below $0\,^\circ\text{C}$.
+
 \begin{figure}[htbp!]
     \centering
-    \includegraphics[width=0.6\textwidth]{Figures/Glacier_all_Years.png}
-    \caption{Sentinel-2 NDSI masks (2015, 2019 \& 2023) and historical GLIMS outlines (orange) clipped to the custom glacier AOI (red).}
+    \begin{subfigure}[b]{0.2\textwidth}
+        \includegraphics[width=\textwidth]{Figures/glacier temp spring.png}
+        \caption{Spring}
+        \label{fig:GEE-Map NDSI}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.2\textwidth}
+        \includegraphics[width=\textwidth]{Figures/glacier temp summer.png}
+        \caption{Summer}
+        \label{fig:Snow / ice coverage graph}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.2\textwidth}
+        \includegraphics[width=\textwidth]{Figures/glacier temp autumm.png}
+        \caption{Autumn}
+        \label{fig:GEE-Map NDSI}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.2\textwidth}
+        \includegraphics[width=\textwidth]{Figures/glacier temp winter.png}
+        \caption{Winter}
+        \label{fig:GEE-Map NDSI}
+    \end{subfigure}
+    \hfill
+    \caption{Results from Task TEMP: Multi-year seasonal mean daytime LST derived from MODIS \texttt{MOD11A2} (2000--2026) clipped to the study bounding box (yellow) overlaid with GLIMS glacier outlines (cyan) and the longitudinal glacier transect (blue).}
+\end{figure}
+
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{results/gst_series/gst_noerr.png}
+    \caption{{WE NEED A GRAPH FOR THE SURFACE TEMPERATURE}}
     \label{fig:gee_result}
 \end{figure}
 
 \section{Discussion and Conclusion}
-TASK 1:
+\subsection{Glacier area}
 In snow-free post-monsoon periods, the glacier area (1.57–2.04 km²) remains close to the 2010 GLIMS baseline (1.61 km²), suggesting relative stability since 2010 after retreating from 1.87 km² in 2001. In contrast, the extreme seasonal swings of over 3 km² do not reflect real ice changes, but rather weather and optical sensor limitations. Because optical NDSI cannot separate fresh snow from glacier ice, winter snow saturates the entire AOI (~3.47 km²), and in years where snow persists all year or falls early in autumn (2021–2022), the true glacier area cannot be correctly measured. Conversely, heavy summer monsoon clouds block the sensor and have low NDSI values, skewing July–August values artificially toward 0 km² (down to 0.03 km² in 2017). Occasional satellite swath edges, winter shadows, and rock debris on the glacier tongue also cause missing pixels or drop NDSI values below 0.4.
 
 Overall, tightening the AOI and focusing on post-monsoon imagery provides realistic estimates in clear years, though optical methods remain heavily constrained by snow and clouds. Future studies could improve accuracy by testing alternative band ratios like NIR/SWIR (B8/B11) or Red/SWIR (B4/B11) for shadowed and dirty ice, applying pixel-level cloud masks (QA60), or combining optical data with Sentinel-1 radar and Digital Elevation Models (DEMs) to monitor the glacier through monsoon cloud cover.
+
+\subsection{Glacier surface temperature}
+Lower daytime LST inside the GLIMS outlines compared to surrounding terrain reflects the high albedo of snow and ice and the $0\,^\circ\text{C}$ melting threshold, where excess summer energy drives latent heat of fusion rather than surface warming. Along the transect, northward cooling with elevation shows that positive JJA temperatures and active melt remain confined to the lower tongue near Selima Tso Taal, aligning with the post-monsoon glacier area stability observed since 2010 in Task~1.
+
+However, absolute values along the margins do not represent pure ice temperatures due to sensor limitations. Because MODIS \texttt{MOD11A2} has a coarse 1\,km resolution relative to the narrow glacier ($\sim 1.6\,\text{km}^2$), marginal pixels mix ice with warmer moraines and bedrock, artificially raising JJA temperatures. Additionally, clear-sky thermal compositing biases JJA averages toward sunny days during the summer monsoon.
+
+Overall, seasonal composites and transect profiling capture regional thermal contrasts and altitudinal melt gradients, though coarse resolution limits precision on small alpine glaciers. Future work could improve accuracy by incorporating higher-resolution Landsat~8/9 thermal imagery (100\,m), Digital Elevation Models (DEMs), and MODIS quality-control flags.
+
+\subsection{Wet and Dry Snow}
 
 Based on your results, discuss what they reveal about the environmental event or process you analysed. Were your initial research questions and hypotheses confirmed? Point out any unexpected patterns, uncertainties, or limitations in your analysis,for example, issues with data quality, sensor characteristics, or classification accuracy.
 
