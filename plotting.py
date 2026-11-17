@@ -1,12 +1,13 @@
 """This file should contain functions for plotting with matplotlib.
-It insures the main Jupyter notebook stays clean from plotting stuff."""
-from typing import Callable
+It insures the main Jupyter notebook stays clean from plotting stuff.
+return geemap.Map or matplotlib Figure."""
 import ee
 import calendar
 import geemap
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib import figure
+import matplotlib.figure
 from matplotlib.patches import Patch
 from io_param_functions import *
 import matplotlib.dates as mdates
@@ -224,7 +225,9 @@ def plot_sar_snow_series(df: pd.DataFrame, col: str = "wet") -> matplotlib.figur
     return fig
 
 
-def plot_sar_snow_season(df: pd.DataFrame, day_ticks: tuple[list[int|float], list[str]], col: str = "wet") -> matplotlib.figure.Figure:
+def plot_sar_snow_season(df: pd.DataFrame,
+                         day_ticks: tuple[list[int|float], list[str]],
+                         col: str = "wet") -> matplotlib.figure.Figure:
     """Seasonal course (Dec-May) of all years overlaid, one panel per orbit direction."""
     orbs = sorted(df["orbit"].unique())
     sys_ = sorted(df["sy"].unique())
@@ -308,7 +311,7 @@ def plot_sar_snow_maps(
     return m
 
 
-def show_map(dem: ee.Image, roi: ee.Geometry, glacier_mask: ee.Geometry):
+def show_dem_map(dem: ee.Image, roi: ee.Geometry, glacier_mask: ee.Geometry):
     """Optional: quick look in a notebook."""
     m = geemap.Map()
     m.centerObject(roi, 13)
@@ -316,3 +319,180 @@ def show_map(dem: ee.Image, roi: ee.Geometry, glacier_mask: ee.Geometry):
     m.addLayer(glacier_mask.clip(roi), {"palette": "cyan"}, "glacier mask")
     return m
 
+
+# --- glacier_area -----------------------------------------------------------
+def plot_glacier_area_map(
+    masks: dict[int, ee.Image],
+    roi: ee.Geometry,
+    glacier_mask: ee.Geometry | None = None,
+    zoom: int = 14,
+) -> geemap.Map:
+    """Yearly snow/ice masks as coloured layers (red = oldest -> blue = newest)."""
+    colors = ["#d7191c", "#f57a5a", "#fdbf6f", "#ffffbf", "#c7e9b4",
+              "#7fcdbb", "#41b6c4", "#2c7fb8", "#253494"]
+    m = geemap.Map(basemap="HYBRID")
+    m.centerObject(roi, zoom)
+    for i, (year, mask) in enumerate(sorted(masks.items())):
+        m.addLayer(mask, {"palette": [colors[i % len(colors)]]}, f"Snow/ice {year}")
+    if glacier_mask is not None:
+        outline = ee.Image().paint(ee.FeatureCollection([ee.Feature(glacier_mask)]), 1, 2)
+        m.addLayer(outline, {"palette": ["orange"]}, "GLIMS outline")
+    m.addLayer(ee.Image().paint(ee.FeatureCollection([ee.Feature(roi)]), 1, 2),
+               {"palette": ["red"]}, "ROI")
+    return m
+
+
+def plot_glacier_area_seasons(area_df: pd.DataFrame) -> matplotlib.figure.Figure:
+    """Snow/ice area per year, one line per season. Needs [season, year, area_km2]."""
+    colors = ["#1f77b4", "#2ca02c", "#d62728", "#ff7f0e", "#9467bd", "#8c564b", "#17becf", "#7f7f7f"]
+    markers = ["o", "s", "^", "D", "v", "P", "X", "*"]
+    fig, ax = plt.subplots(figsize=(12, 7))
+    for i, (season, grp) in enumerate(area_df.groupby("season", sort=False)):
+        grp = grp.dropna(subset=["area_km2"])
+        if len(grp) > 0:
+            ax.plot(grp["year"], grp["area_km2"], marker=markers[i % len(markers)],
+                    color=colors[i % len(colors)], linewidth=2, markersize=7, label=season)
+    mean = area_df.groupby("year")["area_km2"].mean()
+    ax.plot(mean.index, mean.values,
+            marker=markers[area_df["season"].nunique() % len(markers)],
+            color="black", linewidth=3, markersize=7, label="Mean of seasons")
+    ax.set_title(f"Snow and ice cover by season (Median NDSI > {area_df.attrs.get("threshold", 0.4)})",
+                 fontsize=14, fontweight="bold")
+    ax.set_xlabel("Year")
+    ax.set_ylabel("Area (km²)")
+    ax.set_xticks(sorted(area_df["year"].unique()))
+    ax.grid(linestyle="--", alpha=0.6)
+    ax.legend(title="Period", loc="lower left")
+    fig.tight_layout()
+    return fig
+
+
+def plot_glacier_area_months(month_df: pd.DataFrame, year: int) -> matplotlib.figure.Figure:
+    """Monthly snow/ice area bars. Needs [month, area_km2]; NaN is shown as 'No data'."""
+    names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    area = month_df.set_index("month")["area_km2"].reindex(range(1, 13))
+    ymax = np.nanmax(area.to_numpy()) if area.notna().any() else 1.0
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(names, area.fillna(0), color="#41b6c4", edgecolor="black", width=0.7)
+    for i, val in enumerate(area):
+        if np.isnan(val):
+            ax.text(i, 0.02 * ymax, "No\ndata", ha="center", va="bottom", color="red", fontsize=9)
+        else:
+            ax.text(i, val + 0.02 * ymax, f"{val:.2f}", ha="center", va="bottom", fontsize=10)
+    ax.set_ylim(0, ymax * 1.15)
+    ax.set_title(f"Monthly snow and ice cover ({year})", fontsize=14, fontweight="bold")
+    ax.set_ylabel("Area (km²)")
+    ax.set_xlabel("Month")
+    ax.grid(axis="y", linestyle="--", alpha=0.5)
+    fig.tight_layout()
+    return fig
+
+
+# --- gst_line ---------------------------------------------------------------
+def plot_gst_line_map(
+    stack: ee.Image,
+    roi: ee.Geometry,
+    glacier_mask: ee.Geometry | None = None,
+    line: ee.Geometry | None = None,
+    zoom: int = 13,
+    vmin: float = -25,
+    vmax: float = 15,
+) -> geemap.Map:
+    """Seasonal mean LST layers (bands of `stack`) plus glacier outline and centerline."""
+    vis = {"min": vmin, "max": vmax,
+           "palette": ["040274", "2c7bb6", "00a6ca", "ffffbf", "fdae61", "d7191c"]}
+    m = geemap.Map()
+    m.centerObject(roi, zoom)
+    for band in stack.bandNames().getInfo():
+        m.addLayer(stack.select(band), vis, f"Mean LST - {band}")
+    if glacier_mask is not None:
+        m.addLayer(ee.FeatureCollection([ee.Feature(glacier_mask)]), {"color": "cyan"}, "GLIMS outline")
+    if line is not None:
+        m.addLayer(line, {"color": "black"}, "Centerline")
+    return m
+
+
+def plot_gst_line_profile(
+    profile_df: pd.DataFrame,
+    season_count: dict[str, int],
+    glacier_end_m: float | None = None,
+) -> matplotlib.figure.Figure:
+    """Seasonal LST along the centerline. Needs [distance_m, Winter_DJF, ...]."""
+    seasons = [("Winter_DJF", "Winter (DJF)", "#2c7bb6"), ("Spring_MAM", "Spring (MAM)", "#00a6ca"),
+               ("Summer_JJA", "Summer (JJA)", "#d7191c"), ("Autumn_SON", "Autumn (SON)", "#fdae61")]
+    fig, ax = plt.subplots(figsize=(9, 5), dpi=300)
+    for col, label, color in seasons:
+        if col in profile_df.columns:
+            ax.plot(profile_df["distance_m"], profile_df[col], marker="o", markersize=4, linewidth=2,
+                    color=color, label=f"{label} ($n_{{scenes}}={season_count.get(col, 0)}$)")
+    ax.axhline(0, color="gray", linestyle="--", linewidth=1, label="Melting point (0 °C)")
+    if glacier_end_m is not None:
+        ax.axvline(glacier_end_m, color="black", linestyle=":", label="End of glacier")
+    ax.set_title("Seasonal surface temperature along glacier centerline")
+    ax.set_xlabel("Distance along centerline from upper glacier (m)")
+    ax.set_ylabel("Mean surface temperature (°C)")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    return fig
+
+
+def plot_gst_line_seasons(
+    arrays: dict[str, np.ndarray],
+    extent: tuple[float, float, float, float],
+    season_count: dict[str, int],
+    vmin: float = -25,
+    vmax: float = 15,
+) -> matplotlib.figure.Figure:
+    """One LST map per season. `extent` = (lon_min, lon_max, lat_min, lat_max)."""
+    labels = {"Winter_DJF": "Winter (DJF)", "Spring_MAM": "Spring (MAM)",
+              "Summer_JJA": "Summer (JJA)", "Autumn_SON": "Autumn (SON)"}
+    fig, axes = plt.subplots(1, len(arrays), figsize=(14, 5), dpi=300, sharey=True)
+    axes = np.atleast_1d(axes)
+    im = None
+    for ax, (name, arr) in zip(axes, arrays.items()):
+        im = ax.imshow(arr, cmap="RdYlBu_r", vmin=vmin, vmax=vmax, extent=extent, aspect="auto")
+        ax.set_title(f"{labels.get(name, name)}\n($n={season_count.get(name, 0)}$ scenes)")
+        ax.set_xlabel("Longitude (°E)")
+    axes[0].set_ylabel("Latitude (°N)")
+    fig.colorbar(im, ax=axes.ravel().tolist(), shrink=0.85, pad=0.02).set_label("Mean surface temperature (°C)")
+    fig.suptitle("Spatial variability of glacier surface temperature across seasons", y=1.05, fontsize=13)
+    return fig
+
+
+def plot_gst_line_timeseries(
+    temp_df: pd.DataFrame,
+    curve_df: pd.DataFrame,
+    stats: dict[str, float],
+) -> matplotlib.figure.Figure:
+    """Scene LST scatter with linear trend (`lin_fit`) and seasonal-model curve."""
+    fig, ax = plt.subplots(figsize=(10, 4.5), dpi=300)
+    ax.scatter(temp_df["date"], temp_df["LST"], s=18, alpha=0.7, color="#2b5c8f",
+               label=f"Scene mean LST ($n = {stats['n_scenes']}$)")
+    ax.plot(temp_df["date"], temp_df["lin_fit"], color="#d7191c", linewidth=2,
+            label=f"Linear trend ({stats['lin_per_decade']:+.2f} °C/decade, $R^2 = {stats['lin_r2']:.3f}$)")
+    ax.plot(curve_df["date"], curve_df["fit"], "--", color="tab:green",
+            label=f"Seasonal model ({stats['sea_per_decade']:+.2f} °C/decade, $R^2 = {stats['sea_r2']:.3f}$)")
+    ax.axhline(0, color="gray", linestyle="--", linewidth=1)
+    ax.set_title("Glacier surface temperature time series")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Mean surface temperature (°C)")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    return fig
+
+
+#------- glacier_pixel -----------------------------------
+def plot_pixel_maps(pixel_arrays: dict[str, np.ndarray]) -> matplotlib.figure.Figure:
+    """Four-panel map: mean ST, ST spread, fraction of scenes >= 0 deg C, number of observations."""
+    panels = [("st_mean", "Mean ST (°C)", "RdYlBu_r"), ("st_std", "Std of ST (K)", "viridis"),
+              ("frac_nonneg", "Share of scenes ST ≥ 0 °C", "Blues"), ("n_obs", "Observations (n)", "Greys")]
+    fig, ax = plt.subplots(1, len(panels), figsize=(16, 6))
+    for axis, (band, title, colormap) in zip(ax, panels):
+        shown = axis.imshow(pixel_arrays[band], cmap=colormap)
+        axis.set_title(title)
+        axis.axis("off")
+        fig.colorbar(shown, ax=axis, shrink=0.7)
+    fig.tight_layout()
+    return fig

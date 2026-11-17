@@ -43,6 +43,9 @@ def get_glacier_mask(roi: ee.Geometry) -> tuple[ee.Image, str]:
         print("GLIMS not usable:", exc)
     return ee.Image.constant(1).clip(roi).selfMask(), "ROI polygon (no outlines found)"
 
+def get_dem_bins(dem: ee.Image) -> ee.Image:
+    return dem.divide(BIN_M).floor().multiply(BIN_M).toInt().rename("bin")
+
 
 # --------------- Landsat 8/9 L2 ----------------------------------------
 def _prep(img: ee.Image | ee.Element) -> ee.Image | ee.Element: # dont know what it actually outputs

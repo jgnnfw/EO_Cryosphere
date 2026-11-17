@@ -245,20 +245,6 @@ def image_to_arrays(image: ee.Image, roi: ee.Geometry, fill_value: float = -9999
     return arrays
 
 
-def plot_pixel_maps(pixel_arrays: dict[str, np.ndarray]) -> matplotlib.figure.Figure:
-    """Four-panel map: mean ST, ST spread, fraction of scenes >= 0 deg C, number of observations."""
-    panels = [("st_mean", "Mean ST (°C)", "RdYlBu_r"), ("st_std", "Std of ST (K)", "viridis"),
-              ("frac_nonneg", "Share of scenes ST ≥ 0 °C", "Blues"), ("n_obs", "Observations (n)", "Greys")]
-    fig, ax = plt.subplots(1, len(panels), figsize=(16, 6))
-    for axis, (band, title, colormap) in zip(ax, panels):
-        shown = axis.imshow(pixel_arrays[band], cmap=colormap)
-        axis.set_title(title)
-        axis.axis("off")
-        fig.colorbar(shown, ax=axis, shrink=0.7)
-    fig.tight_layout()
-    return fig
-
-
 def download_point_series(points: dict[str, tuple[float, float]], start: str, end: str,
                           months: Sequence[int] | None = WINTER_MONTHS,
                           buffer_m: float = 50.0,

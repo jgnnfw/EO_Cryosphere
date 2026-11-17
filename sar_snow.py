@@ -20,9 +20,6 @@ ORBITS = ("ASCENDING", "DESCENDING")
 # approx. azimuth (deg from north) pointing from the ground towards the satellite at ~28N
 SENSOR_AZ = {"ASCENDING": 261.0, "DESCENDING": 99.0}
 MONTHS: tuple[int, ...] = (12, 1, 2, 3, 4, 5)
-DAY_TICKS = ([0, 31, 62, 90, 121, 151, 182],
-             ["Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun"])
-
 
 # --------------- data / masks --------------------------------------------------------------
 def get_dem() -> ee.Image:
