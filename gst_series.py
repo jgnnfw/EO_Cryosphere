@@ -30,7 +30,7 @@ N_ZONES = 3  # elevation zones with equal glacier area
 
 
 # ----------- glacier mask and DEM ------------------------------------
-def get_glacier_mask(roi: ee.Geometry) -> tuple[ee.Image, str]:
+def get_glacier_mask(roi: ee.Geometry, debug: bool = False) -> tuple[ee.Image, str]:
     """Uses public GLIMS outlines if present in the ROI, else the polygon ROI itself.
     :param roi: given region of interest in which the glacier lies, as list[[lon, lat], ...]
     :return: ee.Image as constant 1 on glacer area defined above and a status string which outlines were used.
@@ -38,10 +38,13 @@ def get_glacier_mask(roi: ee.Geometry) -> tuple[ee.Image, str]:
     try:
         g = ee.FeatureCollection("GLIMS/current").filterBounds(roi)
         if g.size().getInfo() > 0:
-            return ee.Image().byte().paint(g, 1).selfMask(), "GLIMS/current outlines"
+            result = ee.Image().byte().paint(g, 1).selfMask(), "GLIMS/current outlines"
     except Exception as exc:  # asset missing / no access
         print("GLIMS not usable:", exc)
-    return ee.Image.constant(1).clip(roi).selfMask(), "ROI polygon (no outlines found)"
+    result =  ee.Image.constant(1).clip(roi).selfMask(), "ROI polygon (no outlines found)"
+
+    myprint(debug, result[1])
+    return result
 
 def get_dem_bins(dem: ee.Image) -> ee.Image:
     return dem.divide(BIN_M).floor().multiply(BIN_M).toInt().rename("bin")
