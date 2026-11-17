@@ -4,6 +4,9 @@ import pandas as pd
 import matplotlib
 import numpy as np
 
+from gst_series import BIN_M
+
+
 def myprint(debug: bool = False, *arg, **kwarg):
     if debug:
         print(*arg, **kwarg)
@@ -79,3 +82,24 @@ def lstsq_sin_for_years(x, y):
 def study_region(roi: ee.Geometry, glacier_mask: ee.Geometry | None = None) -> ee.Geometry:
     """roi ∩ glacier_mask, or roi if no mask."""
     return roi if glacier_mask is None else glacier_mask.intersection(roi, 1)
+
+
+def get_glacier_mask(roi: ee.Geometry, debug: bool = False) -> tuple[ee.Image, str]:
+    """Uses public GLIMS outlines if present in the ROI, else the polygon ROI itself.
+    :param roi: given region of interest in which the glacier lies, as list[[lon, lat], ...]
+    :return: ee.Image as constant 1 on glacer area defined above and a status string which outlines were used.
+    """
+    try:
+        g = ee.FeatureCollection("GLIMS/current").filterBounds(roi)
+        if g.size().getInfo() > 0:
+            result = ee.Image().byte().paint(g, 1).selfMask(), "GLIMS/current outlines"
+    except Exception as exc:  # asset missing / no access
+        print("GLIMS not usable:", exc)
+    result =  ee.Image.constant(1).clip(roi).selfMask(), "ROI polygon (no outlines found)"
+
+    myprint(debug, result[1])
+    return result
+
+
+def get_dem_bins(dem: ee.Image) -> ee.Image:
+    return dem.divide(BIN_M).floor().multiply(BIN_M).toInt().rename("bin")
