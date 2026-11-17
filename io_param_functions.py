@@ -1,4 +1,5 @@
 import os
+import ee
 import pandas as pd
 import matplotlib
 import numpy as np
@@ -73,3 +74,8 @@ def lstsq_sin_for_years(x, y):
     r_squared = 1 - ss_res / ss_tot if ss_tot > 0 else np.nan
 
     return a, b, A, B, r_squared
+
+
+def study_region(roi: ee.Geometry, glacier_mask: ee.Geometry | None = None) -> ee.Geometry:
+    """roi ∩ glacier_mask, or roi if no mask."""
+    return roi if glacier_mask is None else glacier_mask.intersection(roi, 1)
