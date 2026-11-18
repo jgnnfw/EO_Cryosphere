@@ -95,7 +95,7 @@ def get_glacier_mask(roi: ee.Geometry, debug: bool = False) -> tuple[ee.Image, s
             result = ee.Image().byte().paint(g, 1).selfMask(), "GLIMS/current outlines"
     except Exception as exc:  # asset missing / no access
         print("GLIMS not usable:", exc)
-    result =  ee.Image.constant(1).clip(roi).selfMask(), "ROI polygon (no outlines found)"
+        result =  ee.Image.constant(1).clip(roi).selfMask(), "ROI polygon (no outlines found)"
 
     myprint(debug, result[1])
     return result
