@@ -30,6 +30,8 @@ Glaciers are a clear and widely understood indicator of long-term climatic chang
 
 To evaluate the changes that this glacier has gone through over time, this study addresses four main tasks. Firstly, a suitable area of interest (AOI) is defined. Then, the outline of the glacier is mapped over multiple years and compared to the outlines of the GLIMS dataset \citep[Global Land Ice Measurements from Space,][]{glims_global_2005}. Furthermore, this paper analyzes the seasonal and general surface temperature changes, and finally classifies wet and dry snow conditions from winter to spring using synthetic aperture radar (SAR) backscatter. The hypothesis is that the glacier has retreated since the beginning of the data set, while it exhibits generally warmer surface temperature during melt seasons, and shifts from predominantly dry snow in winter to wet snow in spring.
 
+A first area of interest was drawn with the line tool of Google Earth Engine. To determine wheter suitable 
+
 \section{Methodology}
 
 \subsection{Glacier area}
@@ -76,36 +78,13 @@ Seasonal mean daytime Land Surface Temperature (LST) across the bounding box exh
 
 \begin{figure}[htbp!]
     \centering
-    \begin{subfigure}[b]{0.2\textwidth}
-        \includegraphics[width=\textwidth]{Figures/glacier temp spring.png}
-        \caption{Spring}
-        \label{fig:GEE-Map NDSI}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.2\textwidth}
-        \includegraphics[width=\textwidth]{Figures/glacier temp summer.png}
-        \caption{Summer}
-        \label{fig:Snow / ice coverage graph}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.2\textwidth}
-        \includegraphics[width=\textwidth]{Figures/glacier temp autumm.png}
-        \caption{Autumn}
-        \label{fig:GEE-Map NDSI}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.2\textwidth}
-        \includegraphics[width=\textwidth]{Figures/glacier temp winter.png}
-        \caption{Winter}
-        \label{fig:GEE-Map NDSI}
-    \end{subfigure}
-    \hfill
-    \caption{Results from Task TEMP: Multi-year seasonal mean daytime LST derived from MODIS \texttt{MOD11A2} (2000--2026) clipped to the study bounding box (yellow) overlaid with GLIMS glacier outlines (cyan) and the longitudinal glacier transect (blue).}
+    \includegraphics[trim={2cm 0.2cm 5cm 0}, clip, width=\textwidth]{results/gst_line/lst_spatial_fig.png}
+    \caption{Spatial surface temperature variation: Multi-year seasonal mean daytime surface temperature derived from Landsat Collection 2 Surface Temperature (\numrange{2015}{2026}) overlaid with the area of interest AOI (green) and the GLIMS glacier outlines (purple).}
 \end{figure}
 
 \begin{figure}[htbp!]
     \centering
-    \includegraphics[width=0.6\textwidth]{results/gst_series/gst_noerr.png}
+    \includegraphics[width=\textwidth]{results/gst_line/lst_profile_fig.png}
     \caption{{WE NEED A GRAPH FOR THE SURFACE TEMPERATURE}}
     \label{fig:gee_result}
 \end{figure}
@@ -130,14 +109,6 @@ However, absolute values along the margins do not represent pure ice temperature
 Overall, seasonal composites and transect profiling capture regional thermal contrasts and altitudinal melt gradients, though coarse resolution limits precision on small alpine glaciers. Future work could improve accuracy by incorporating higher-resolution Landsat~8/9 thermal imagery (100\,m), Digital Elevation Models (DEMs), and MODIS quality-control flags.
 
 \subsection{Wet and dry snow}
-
-Based on your results, discuss what they reveal about the environmental event or process you analysed. Were your initial research questions and hypotheses confirmed? Point out any unexpected patterns, uncertainties, or limitations in your analysis,for example, issues with data quality, sensor characteristics, or classification accuracy.
-
-Try to connect your findings to a broader context. How do they compare with previous studies or official sources? What are the implications of your observations for understanding natural hazards, climate-related changes, or land cover dynamics?
-
-To wrap up your report, summarise the key takeaways of your project. Highlight the most important results, how they contribute to answering your research questions, and what you learned during the process.
-
-You may also suggest how the analysis could be improved in future work, for example, by using additional data, trying different methods, or applying the same approach to another region or time period.
 
 \begin{itemize}
     \item Limitation of area by using optical: In years where snow persist the whole year, glacier area cannot be correctly measured.
