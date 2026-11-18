@@ -19,7 +19,8 @@ def plot_histogram_image_collection(
         start: str,
         end: str,
         split_percent: list[int | float] | None = None,
-        color_space: str = "coolwarm"
+        color_space: str = "coolwarm",
+        fig_size: tuple[int, int] = (12, 6),
 ) -> matplotlib.figure.Figure:
     """Plots the image collection times of recording with color according to Cloudy Pixel Percentage.
     Bins are quarter yearly, please use start and end dates that align with 3-month cycles.
@@ -46,7 +47,7 @@ def plot_histogram_image_collection(
     ]
     cloud_categories = pd.cut(clouds, bins=cloud_bins, labels=cloud_labels, include_lowest=True)
 
-    fig = plt.figure(figsize=(12, 6))
+    fig = plt.figure(figsize=fig_size)
 
     data = [dates[cloud_categories == category] for category in cloud_labels]
     date_bins = pd.date_range(start=start, end=end, freq='3MS')
@@ -300,7 +301,7 @@ def plot_sar_snow_maps(
     """Interactive map: monthly wet-snow frequency layers and melt-onset day."""
     m = geemap.Map()
     m.centerObject(roi, 11)
-    vis = {"min": 0, "max": 1, "palette": ["#f0f0f0", "#9ecae1", "#08306b"]}
+    vis = {"min": 0, "max": 1, "palette": ["#ffffb2", "#41b6c4", "#08306b"]}
     for mo, wet_freq in wet_freqs.items():
         m.addLayer(wet_freq.clip(roi), vis, f"wet freq {calendar.month_abbr[mo]} {sy}", mo == 5)
     vis_on = {"min": 0, "max": 182, "palette": ["#440154", "#3b528b", "#21908d", "#5dc863", "#fde725"]}
