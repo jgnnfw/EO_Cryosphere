@@ -95,9 +95,31 @@ Seasonal Landsat Collection 2 surface temperature composites reveal pronounced t
 \end{figure}
 
 \subsection{Classifying wet snow}
+
 (VORLAGE: In this section, present the key results of your analysis. Include the maps, plots, and figures you created during your work. Try to structure the results in a logical order. You can for example make subsections for the different tasks.
 
 If your project involves seasonal comparisons, you can use or adapt the layout shown in Figure~\ref{fig:seasonal_changes} to show changes over time using satellite imagery. Make sure all figures have good captions and are referred to in the text. You can also include screenshots or exports from your Google Earth Engine scripts. An example is shown in Figure~\ref{fig:gee_result}, but feel free to format and design your own visual outputs based on what fits your analysis best.)
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{results/sar_snow/sar_snow_series.png}
+    \caption{Caption}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{results/sar_snow/sar_snow_season.png}
+    \caption{Caption}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{results/sar_snow/sar_snow_elev_2024_ASCENDING.png}
+    \caption{Caption}
+    \label{fig:placeholder}
+\end{figure}
 
 \section{Discussion}
 
@@ -126,7 +148,6 @@ Try to connect your findings to a broader context. How do they compare with prev
 
 You may also suggest how the analysis could be improved in future work, for example, by using additional data, trying different methods, or applying the same approach to another region or time period.)
 
-
 \bibliographystyle{apalike-ejor}
 \bibliography{references.bib}
 
@@ -137,7 +158,7 @@ You may also suggest how the analysis could be improved in future work, for exam
 \subsection{Abbreviations}
 
 \FloatBarrier
-\begin{table}[h!]
+\begin{table}[htbp]
     \caption{Abbreviations used}
     \label{tab:abbreviations}
     \centering
@@ -148,9 +169,11 @@ You may also suggest how the analysis could be improved in future work, for exam
     AOI & Area of Interest \\
     GEE & Google Earth Engine \\
     GLIMS & Global Land Ice Measurements from Space \\
+    LST & land surface temperature \\
     NDSI & Normalized Difference Snow Index \\
+    NIR & near infrared \\
     MODIS & Moderate Resolution Imaging Spectroradiometer \\
-    SWIR & shortwave infrared ($\qty{1.4}{\micro\meter} \leq \lambda \leq \qty{3}{\micro\meter}$)\\
+    SWIR & shortwave infrared \\
     SAR & synthetic aperture radar \\
     \bottomrule
     \end{tabular}
@@ -161,10 +184,21 @@ You may also suggest how the analysis could be improved in future work, for exam
 
 Link to Github / Google Colab. Is a Google Colab actually needed or is Github fine??
 
+\subsection{Additional Figures}
+
+\FloatBarrier
+\begin{figure}[h!]
+    \centering
+    \includegraphics[trim={0 0.15cm 0 0}, clip, width=0.8\linewidth]{results/S2_BOA_number_of_observations.png}
+    \caption{Analysis of suitable satellite data}
+    \label{fig:s2_boa_historgram}
+\end{figure}
+\FloatBarrier
+
 \subsection{Use of generative artificial intelligence}
 
 \FloatBarrier
-\begin{table}[h]
+\begin{table}[htbp]
     \caption{Use of generative AI}
     \label{tab:AI_Use}
     \centering
