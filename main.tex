@@ -30,7 +30,7 @@ Glaciers are a clear and widely understood indicator of long-term climatic chang
 
 To evaluate the changes that this glacier has gone through over time, this study addresses four main tasks. Firstly, a suitable area of interest (AOI) is defined. Then, the outline of the glacier is mapped over multiple years and compared to the outlines of the GLIMS dataset \citep[Global Land Ice Measurements from Space,][]{glims_global_2005}. Furthermore, this paper analyzes the seasonal and general surface temperature changes, and finally classifies wet and dry snow conditions from winter to spring using synthetic aperture radar (SAR) backscatter. The hypothesis is that the glacier has retreated since the beginning of the data set, while it exhibits generally warmer surface temperature during melt seasons, and shifts from predominantly dry snow in winter to wet snow in spring.
 
-A first area of interest was drawn with the line tool of Google Earth Engine. To determine wheter suitable
+A first area of interest was drawn with the line tool of Google Earth Engine. A quick analysis (\autoref{fig:s2_boa_historgram}) of the recording times of the Sentinel 2 bottom of atmosphere collection (\texttt{COPERNICUS/S2\_SR\_HARMONIZED}) showed that enough data is available, especially for newer years.
 
 \section{Methodology}
 
@@ -76,23 +76,45 @@ Clipping the NDSI mask onto our refined polygon successfully isolates the main g
 \subsection{Glacier surface temperature}
 Seasonal mean daytime Land Surface Temperature (LST) across the bounding box exhibits a pronounced annual cycle (Figure~\ref{fig:lst_maps}). Temperatures are lowest in Winter (DJF, approximately $-18\,^\circ\text{C}$ to $-12\,^\circ\text{C}$), moderate during Spring (MAM, $-10\,^\circ\text{C}$ to $-2\,^\circ\text{C}$) and Autumn (SON, $-5\,^\circ\text{C}$ to $+2\,^\circ\text{C}$), and peak in Summer (JJA, $+2\,^\circ\text{C}$ to $+10\,^\circ\text{C}$). Across all seasons---and most visibly during JJA---glaciated surfaces within the GLIMS outlines remain cooler than the surrounding ice-free terrain and lower valley slopes. Along the south--north glacier transect, daytime LST decreases consistently with increasing latitude (elevation) across all four seasons (Figure~\ref{fig:lst_transect}), with positive surface temperatures restricted mainly to JJA on the lower glacier tongue while the upper accumulation zone remains near or below $0\,^\circ\text{C}$.
 
-\begin{figure}[htbp!]
+\begin{figure}[htbp]
     \centering
     \includegraphics[trim={2cm 0.2cm 5cm 0}, clip, width=\textwidth]{results/gst_line/lst_spatial_fig.png}
     \caption{Spatial surface temperature variation: Multi-year seasonal mean daytime surface temperature derived from Landsat Collection 2 Surface Temperature (\numrange{2015}{2026}) overlaid with the area of interest AOI (green) and the GLIMS glacier outlines (purple).}
 \end{figure}
 
-\begin{figure}[htbp!]
+\begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{results/gst_line/lst_profile_fig.png}
+    \includegraphics[width=0.8\textwidth]{results/gst_line/lst_profile_fig.png}
     \caption{{WE NEED A GRAPH FOR THE SURFACE TEMPERATURE}}
     \label{fig:gee_result}
 \end{figure}
 
 \subsection{Classifying wet snow}
+
 (VORLAGE: In this section, present the key results of your analysis. Include the maps, plots, and figures you created during your work. Try to structure the results in a logical order. You can for example make subsections for the different tasks.
 
 If your project involves seasonal comparisons, you can use or adapt the layout shown in Figure~\ref{fig:seasonal_changes} to show changes over time using satellite imagery. Make sure all figures have good captions and are referred to in the text. You can also include screenshots or exports from your Google Earth Engine scripts. An example is shown in Figure~\ref{fig:gee_result}, but feel free to format and design your own visual outputs based on what fits your analysis best.)
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{results/sar_snow/sar_snow_series.png}
+    \caption{Caption}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{results/sar_snow/sar_snow_season.png}
+    \caption{Caption}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{results/sar_snow/sar_snow_elev_2024_ASCENDING.png}
+    \caption{Caption}
+    \label{fig:placeholder}
+\end{figure}
 
 \section{Discussion}
 
@@ -124,7 +146,6 @@ Try to connect your findings to a broader context. How do they compare with prev
 
 You may also suggest how the analysis could be improved in future work, for example, by using additional data, trying different methods, or applying the same approach to another region or time period.)
 
-
 \bibliographystyle{apalike-ejor}
 \bibliography{references.bib}
 
@@ -135,7 +156,7 @@ You may also suggest how the analysis could be improved in future work, for exam
 \subsection{Abbreviations}
 
 \FloatBarrier
-\begin{table}[h!]
+\begin{table}[htbp]
     \caption{Abbreviations used}
     \label{tab:abbreviations}
     \centering
@@ -146,9 +167,11 @@ You may also suggest how the analysis could be improved in future work, for exam
     AOI & Area of Interest \\
     GEE & Google Earth Engine \\
     GLIMS & Global Land Ice Measurements from Space \\
+    LST & land surface temperature \\
     NDSI & Normalized Difference Snow Index \\
+    NIR & near infrared \\
     MODIS & Moderate Resolution Imaging Spectroradiometer \\
-    SWIR & shortwave infrared ($\qty{1.4}{\micro\meter} \leq \lambda \leq \qty{3}{\micro\meter}$)\\
+    SWIR & shortwave infrared \\
     SAR & synthetic aperture radar \\
     \bottomrule
     \end{tabular}
@@ -159,10 +182,21 @@ You may also suggest how the analysis could be improved in future work, for exam
 
 Link to Github / Google Colab. Is a Google Colab actually needed or is Github fine??
 
+\subsection{Additional Figures}
+
+\FloatBarrier
+\begin{figure}[h!]
+    \centering
+    \includegraphics[trim={0 0.15cm 0 0}, clip, width=0.8\linewidth]{results/S2_BOA_number_of_observations.png}
+    \caption{Analysis of suitable satellite data}
+    \label{fig:s2_boa_historgram}
+\end{figure}
+\FloatBarrier
+
 \subsection{Use of generative artificial intelligence}
 
 \FloatBarrier
-\begin{table}[h]
+\begin{table}[htbp]
     \caption{Use of generative AI}
     \label{tab:AI_Use}
     \centering
