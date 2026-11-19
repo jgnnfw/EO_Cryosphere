@@ -30,7 +30,7 @@ Glaciers are a clear and widely understood indicator of long-term climatic chang
 
 To evaluate the changes that this glacier has gone through over time, this study addresses four main tasks. Firstly, a suitable area of interest (AOI) is defined. Then, the outline of the glacier is mapped over multiple years and compared to the outlines of the GLIMS dataset \citep[Global Land Ice Measurements from Space,][]{glims_global_2005}. Furthermore, this paper analyzes the seasonal and general surface temperature changes, and finally classifies wet and dry snow conditions from winter to spring using synthetic aperture radar (SAR) backscatter. The hypothesis is that the glacier has retreated since the beginning of the data set, while it exhibits generally warmer surface temperature during melt seasons, and shifts from predominantly dry snow in winter to wet snow in spring.
 
-A first area of interest was drawn with the line tool of Google Earth Engine. To determine wheter suitable
+A first area of interest was drawn with the line tool of Google Earth Engine, to determine whether suitable data or imagery was available for this area. The selected AOI did in fact possess usable data, however the AOI included parts of neighbouring glaciers and snow patches, which would've made spatial analysis more arduous. To circumvent this issue a new boundary had to be drawn around the GLIMS Area, while a buffer zone around the Area was kept.
 
 \section{Methodology}
 
@@ -75,19 +75,23 @@ Clipping the NDSI mask onto our refined polygon successfully isolates the main g
 \end{figure}
 
 \subsection{Glacier surface temperature}
-Seasonal mean daytime Land Surface Temperature (LST) across the bounding box exhibits a pronounced annual cycle (Figure~\ref{fig:lst_maps}). Temperatures are lowest in Winter (DJF, approximately $-18\,^\circ\text{C}$ to $-12\,^\circ\text{C}$), moderate during Spring (MAM, $-10\,^\circ\text{C}$ to $-2\,^\circ\text{C}$) and Autumn (SON, $-5\,^\circ\text{C}$ to $+2\,^\circ\text{C}$), and peak in Summer (JJA, $+2\,^\circ\text{C}$ to $+10\,^\circ\text{C}$). Across all seasons---and most visibly during JJA---glaciated surfaces within the GLIMS outlines remain cooler than the surrounding ice-free terrain and lower valley slopes. Along the south--north glacier transect, daytime LST decreases consistently with increasing latitude (elevation) across all four seasons (Figure~\ref{fig:lst_transect}), with positive surface temperatures restricted mainly to JJA on the lower glacier tongue while the upper accumulation zone remains near or below $0\,^\circ\text{C}$.
+
+Seasonal Landsat Collection 2 surface temperature composites reveal pronounced thermal contrasts across both seasons and glacier zones (Figures~\ref{fig:lst_spatial} and~\ref{fig:lst_profile}). Along the $2000\,\mathrm{m}$ glacier centerline ($600$--$2600\,\mathrm{m}$ in Figure~\ref{fig:lst_profile}), winter (DJF) exhibits the coldest conditions, reaching approximately $-24\,^{\circ}\mathrm{C}$ in the upper accumulation zone ($750\,\mathrm{m}$) and warming steadily to $-17\,^{\circ}\mathrm{C}$ at the terminus. Spring (MAM) and autumn (SON) display intermediate, sub-freezing profiles that begin near $-14\,^{\circ}\mathrm{C}$ at the upper boundary and rise down-glacier to roughly $-5.5\,^{\circ}\mathrm{C}$ in spring and $-6.5\,^{\circ}\mathrm{C}$ in autumn. In summer (JJA), the centerline plateaus near the $0\,^{\circ}\mathrm{C}$ melting point across the upper and middle glacier before increasing slightly to approximately $2\,^{\circ}\mathrm{C}$ at the terminus. Spatially (Figure~\ref{fig:lst_spatial}), the glacier stands out as a well-defined object closely matching the 2010 GLIMS outline during spring, autumn, and especially summer, when surrounding slopes exceed $15\,^{\circ}\mathrm{C}$ while the glacier interior remains near $0\,^{\circ}\mathrm{C}$. 
+
+\vspace{3em}
 
 \begin{figure}[ht!]
     \centering
     \includegraphics[trim={2cm 0.2cm 5cm 0}, clip, width=\textwidth]{results/gst_line/lst_spatial_fig.png}
     \caption{Spatial surface temperature variation: Multi-year seasonal mean daytime surface temperature derived from Landsat Collection 2 Surface Temperature (\numrange{2015}{2026}) overlaid with the area of interest AOI (green) and the GLIMS glacier outlines (purple).}
+    \label{fig:lst_spatial}
 \end{figure}
 
 \begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{results/gst_line/lst_profile_fig.png}
-    \caption{Seasonal mean LST along glacier center line}
-    \label{fig:gee_result}
+    \caption{Mean seasonal surface temperature ($^{\circ}\mathrm{C}$) extracted along the glacier centerline across winter (DJF), spring (MAM), summer (JJA), and autumn (SON). Vertical dotted lines mark the upper and lower glacier boundaries ($600\,\mathrm{m}$ and $2600\,\mathrm{m}$). The horizontal dashed line indicates the $0\,^{\circ}\mathrm{C}$ melting point.}
+    \label{fig:lst_profile}
 \end{figure}
 
 \subsection{Classifying wet snow}
@@ -103,11 +107,8 @@ In snow-free post-monsoon periods, the glacier area (1.57–2.04 km²) remains c
 Overall, tightening the AOI and focusing on post-monsoon imagery provides realistic estimates in clear years, though optical methods remain heavily constrained by snow and clouds. Future studies could improve accuracy by testing alternative band ratios like NIR/SWIR (B8/B11) or Red/SWIR (B4/B11) for shadowed and dirty ice, applying pixel-level cloud masks (QA60), or combining optical data with Sentinel-1 radar and Digital Elevation Models (DEMs) to monitor the glacier through monsoon cloud cover.
 
 \subsection{Glacier surface temperature}
-Lower daytime LST inside the GLIMS outlines compared to surrounding terrain reflects the high albedo of snow and ice and the $0\,^\circ\text{C}$ melting threshold, where excess summer energy drives latent heat of fusion rather than surface warming. Along the transect, northward cooling with elevation shows that positive JJA temperatures and active melt remain confined to the lower tongue near Selima Tso Taal, aligning with the post-monsoon glacier area stability observed since 2010 in Task~1.
 
-However, absolute values along the margins do not represent pure ice temperatures due to sensor limitations. Because MODIS \texttt{MOD11A2} has a coarse 1\,km resolution relative to the narrow glacier ($\sim 1.6\,\text{km}^2$), marginal pixels mix ice with warmer moraines and bedrock, artificially raising JJA temperatures. Additionally, clear-sky thermal compositing biases JJA averages toward sunny days during the summer monsoon.
-
-Overall, seasonal composites and transect profiling capture regional thermal contrasts and altitudinal melt gradients, though coarse resolution limits precision on small alpine glaciers. Future work could improve accuracy by incorporating higher-resolution Landsat~8/9 thermal imagery (100\,m), Digital Elevation Models (DEMs), and MODIS quality-control flags.
+The spatial maps and centerline profiles show a clear seasonal temperature cycle driven by how snow and ice respond to heat (Figures~\ref{fig:lst_spatial} and~\ref{fig:lst_profile}). Because the plots average images from multiple years into seasonal means, they capture seasonal patterns well. During winter, weak sunlight and widespread snow cover keep both the glacier and the surrounding terrain deeply frozen, leaving very little temperature difference between them. In winter, spring, and autumn, surface temperatures rise steadily by about $6$ to $8\,^\circ\text{C}$ from the upper accumulation zone down to the terminus, mainly due to warmer air at lower elevations. Spring and autumn act as transition periods: the glacier surface stays well below freezing, while the darker surrounding rock absorbs more sunlight and warms up faster than the bright, reflective ice. This contrast peaks in summer, when exposed rock around the glacier heats above $15\,^\circ\text{C}$ while the glacier stands out as a cold zone remaining near $0\,^\circ\text{C}$. Because ice cannot warm above its melting point, extra solar energy goes into melting the snow and ice instead of raising the surface temperature. As a result, the temperature difference between the upper and lower parts of the glacier disappears in summer. The slight rise to about $2\,^\circ\text{C}$ near the terminus likely reflects a thin cover of rock debris or a slight glacier retreat since the 2010 GLIMS outline was mapped.
 
 \subsection{Wet and dry snow}
 
