@@ -31,33 +31,31 @@ Using satellite remote sensing in Google Earth Engine (GEE), this study investig
 
 To evaluate the state of this glacier, four tasks are addressed. First, a suitable area of interest (AOI) is defined. Second, glacier outlines are mapped for multiple years and compared to the outlines of the GLIMS dataset \citep[Global Land Ice Measurements from Space,][]{glims_global_2005}. Third, seasonal surface temperatures are analyzed. Finally, wet and dry snow conditions from winter to early summer are classified using synthetic aperture radar (SAR) backscatter. It is expected that the glacier area is close to or below the GLIMS baseline, that the glacier surface stays near the melting point in summer, and that snow shifts from predominantly dry in winter to increasingly wet in spring.
 
-A first AOI was drawn as a rectangle with the drawing tools of GEE. Suitable imagery was available for this area (\autoref{fig:s2_boa_historgram}, Appendix). However, because the AOI included parts of neighbouring glaciers and snow patches, a new tight boundary was drawn around the GLIMS area.
+A first AOI was drawn as a rectangle with the drawing tools of GEE. Suitable imagery was available for this area (\autoref{fig:s2_boa_historgram}, Appendix). However, because the AOI included parts of neighbouring glaciers and snow patches, a new tight boundary with an area of \qty{3.47}{\km\squared} was drawn around the GLIMS area.
 
 \section{Methodology}
 
 \subsection{Glacier area}
-The glacier area was derived from Sentinel-2 surface reflectance imagery (\numrange{2015}{2026}) in GEE. The data offer a spatial resolution of \qtyrange{10}{20}{\m}, an atmospheric correction and a revisit time of \qty{5}{\day}, which is suitable for tracking multi-year changes. The initial rectangular AOI included neighbouring glaciers and surrounding snow, which distorted the measurements. It was therefore reduced to a custom polygon of approximately \qty{3.47}{\km\squared} fitted tightly around the glacier. The images were grouped into four seasons (December--February, March--May, etc.) and filtered for scenes with less than \qty{50}{\percent} cloud cover. To separate the glacier from the surrounding rock and soil, the median Normalized Difference Snow Index (NDSI) was calculated from the green band (B3) and the shortwave infrared (SWIR) band (B11) of Sentinel-2. Snow and ice reflect strongly in the visible green and absorb in the SWIR, so an NDSI above \num{0.4} isolates snow and ice cover \citep{Dozier1989, Hall1995}.
+The glacier area was derived from Sentinel-2 surface reflectance imagery (\numrange{2015}{2026}) in GEE. The data offer a spatial resolution of \qtyrange{10}{20}{\m}, an atmospheric correction and a revisit time of \qty{5}{\day}, which is suitable for tracking multi-year changes. The tight area of interest as described above was used. The images were grouped into four seasons (December--February, March--May, etc.) and filtered for scenes with less than \qty{50}{\percent} cloud cover. To separate the glacier from the surrounding rock and soil, the median Normalized Difference Snow Index (NDSI) was calculated from the green band (B3) and the shortwave infrared (SWIR) band (B11) of Sentinel-2. Snow and ice reflect strongly in the visible green and absorb in the SWIR, so an NDSI above \num{0.4} isolates snow and ice cover \citep{Dozier1989, Hall1995}.
 \begin{equation}
     \mathrm{NDSI} = \frac{\text{Green} - \text{SWIR}}  {\text{Green} + \text{SWIR}},\qquad \mathrm{Median}(\mathrm{NDSI}) > \num{0.4} \implies \text{Snow or Ice}
     \label{eq:NDSI}
 \end{equation}
 
 \subsection{Glacier surface temperature}
-Surface temperatures were derived from Landsat Collection 2 Surface Temperature (September 2014 to December 2026) in GEE. The product has a spatial resolution of \qty{30}{\m} (resampled from the native thermal resolution) and a large archive, which is suitable for capturing regional and seasonal thermal regimes \citep{earth_resources_observation_and_science_eros_center_landsat_2020}. In contrast to the tight polygon used for the glacier area, the rectangular AOI was used here to capture temperature contrasts between the glaciated terrain and the surrounding ice-free valleys. The current GLIMS outlines are overlaid for reference. Daytime scenes were grouped into the four meteorological seasons, and multi-year mean composites were calculated for \numrange{2015}{2026}. The raw digital numbers (DN) were converted to degrees Celsius using the scale factor and Kelvin offset of the product ($\mathrm{LST} = \mathrm{DN} \times \num{0.00341802} + \qty{149.0}{\kelvin} - \qty{273.15}{\kelvin}$). To examine the temperature change along the glacier, a hand-drawn south--north transect along the glacier centre was defined (from \ang{81.776}\,E, \ang{30.195}\,N to \ang{30.226}\,N). The seasonal mean temperature was extracted along this line at a sampling distance of \qty{150}{\m}.
+Surface temperatures were derived from Landsat Collection 2 Surface Temperature (September 2014 to November 2026) in GEE. The product has a spatial resolution of \qty{30}{\m} (resampled from the native thermal resolution) and a large archive, which is suitable for capturing regional and seasonal thermal regimes \citep{earth_resources_observation_and_science_eros_center_landsat_2020}. In contrast to the tight polygon used for the glacier area, the rectangular AOI was used here to capture temperature contrasts between the glaciated terrain and the surrounding ice-free valleys. The latest GLIMS outlines are overlaid for reference. Daytime scenes were grouped into the four meteorological seasons, and multi-year mean composites were calculated for \numrange{2015}{2026}. The raw digital numbers (DN) were converted to degrees Celsius using the scale factor and Kelvin offset of the product ($\mathrm{LST} = \mathrm{DN} \times \num{0.00341802} + \qty{149.0}{\kelvin} - \qty{273.15}{\kelvin}$). To examine the temperature change along the glacier, a hand-drawn south--north transect along the glacier centre was defined ($\sim$ \ang{81.776}\,E, \ang{30.195}\,N to \ang{30.226}\,N). The seasonal mean temperature was extracted along this line at a sampling distance of \qty{150}{\m}.
 
 \subsection{Classifying wet snow}
-The C-band SAR mission Sentinel-1 was used, which records through clouds and in darkness. The images have a pixel spacing of \qty{10}{\m} and a revisit time of \qtyrange{6}{12}{\day} per orbit direction (ascending and descending). Dry snow is almost transparent to C-band radar, so the backscatter stays close to that of the surface below. Liquid water in snow, however, absorbs the signal and clearly lowers the backscatter \citep{nagler_retrieval_2000}. Wet snow is therefore identified by comparing each image with a dry reference.
+The C-band SAR mission Sentinel-1 was used, which records through clouds and in darkness. The images have a pixel spacing of \qty{10}{\m} and a revisit time of \qtyrange{6}{12}{\day} per orbit direction (ascending and descending). Dry snow is almost transparent to C-band radar, so the backscatter stays close to that of the surface below. However, liquid water absorbs the signal and clearly lowers the backscatter \citep{nagler_retrieval_2000}. Wet snow is therefore identified by comparing each image with a dry reference.
 
-In GEE, VV-polarised scenes of the AOI from December 2015 to June 2025 were used. % TODO: confirm product (S1_GRD, IW mode), speckle filtering, terrain/layover masking, and working resolution (100 m?)
-Each season covers December to July, and the seasons \numrange{2017}{2025} are analyzed. Ascending and descending orbits were processed separately, with typically around \num{25} dates per season and orbit. For each pixel, the dry reference is the median backscatter of December to February. The change is the scene value minus the reference in \unit{\dB}, which equals the ratio of the two images. Pixels with a change of \qty{-2}{\dB} or lower were classified as wet. This empirical threshold is widely used \citep{nagler_advancements_2016, lund_interpreting_2022} and is also one of the constant values (\qtylist{-2;-3}{\dB}) reported for a Himalayan basin \citep{snapir_method_2019}.
+In GEE, VV-polarised scenes of the AOI from December 2015 to June 2025 were used. Each season covers December to July, and the seasons \numrange{2017}{2025} are analyzed. Ascending and descending orbits were processed separately, with typically around \num{25} dates per season and orbit. For each pixel, the dry reference is the median backscatter of December to February. The change is the scene value minus the reference in \unit{\dB}, which equals the ratio of the two images. Pixels with a change of \qty{-2}{\dB} or lower were classified as wet. This empirical threshold is widely used \citep{nagler_advancements_2016, lund_interpreting_2022} and is also one of the constant values (\qtylist{-2;-3}{\dB}) reported for a Himalayan basin \citep{snapir_method_2019}.
 
-Two measures are derived from the classification. The \emph{wet fraction} is the mean of all wet pixels per acquisition date, calculated only within the latest GLIMS outline intersected with the tight AOI. The \emph{wet frequency} is the share of acquisition dates within a month on which a pixel is classified as wet, calculated per pixel on a \qty{200}{\m} grid.
+Two measures are derived from the classification. The \emph{wet fraction} is the mean of all wet pixels per acquisition date, calculated only within the latest GLIMS outline intersected with the tight AOI. The \emph{wet frequency} is the mean pixel wet value over all acquisition dates within a month, calculated per pixel on a \qty{200}{\m} grid.
 
 \section{Results}
 
 \subsection{Glacier area}
-Clipping the NDSI mask to the refined polygon isolates the main glacier from adjacent glaciers on the surrounding ridges (\autoref{fig:Glacier outlines 2015, 2019, 2023}). Within this AOI, the GLIMS outlines measure \qty{1.87}{\km\squared} in \num{2001} and \qty{1.61}{\km\squared} in \num{2010}. In the Sentinel-2 time series (\numrange{2015}{2026}, \autoref{fig:Ice and snow coverage by season}), winter and spring areas are large and inconsistent, as they are bounded by the AOI limit of \qty{3.47}{\km\squared}. Values from late summer to early autumn are closest to the GLIMS area and lie between \qtyrange{1.57}{2.04}{\km\squared}, without a clear trend. % TODO: confirm which months the range 1.57--2.04 refers to (summer vs. post-monsoon)
-In July and August, the measured area drops strongly, down to \qty{0.03}{\km\squared} in \num{2017}. In the autumn to winter period (September--December), the area lies between \qtyrange{1.5}{2.5}{\km\squared} in most years, but rises to around \qty{3.40}{\km\squared} in \numlist{2021;2022;2026}.
+Clipping the NDSI mask to the refined polygon isolates the main glacier from adjacent glaciers on the surrounding ridges (\autoref{fig:Glacier outlines 2015, 2019, 2023}). Within this AOI, the GLIMS outlines measure \qty{1.87}{\km\squared} in \num{2001} and \qty{1.61}{\km\squared} in \num{2010}. In the Sentinel-2 time series (\numrange{2015}{2026}, \autoref{fig:Ice and snow coverage by season}), winter and spring areas are large and inconsistent, but they are bounded by the AOI limit of \qty{3.47}{\km\squared}. Values from late summer to early autumn are closest to the GLIMS area and lie between \qtyrange{1.57}{2.04}{\km\squared}, without a clear trend. In the autumn to winter period (September--December), the area lies between \qtyrange{1.5}{2.5}{\km\squared} in most years, but rises to around \qty{3.40}{\km\squared} in \numlist{2021; 2022; 2026}.
 
 \begin{figure}[htbp]
     \centering
@@ -74,19 +72,18 @@ In July and August, the measured area drops strongly, down to \qty{0.03}{\km\squ
         \label{fig:Ice and snow coverage by season}
     \end{subfigure}
     \hfill
-    \caption{Glacier area evaluations: (a) Sentinel-2 NDSI masks (\numlist[list-final-separator={ \& }]{2015;2019;2023}) and historical GLIMS outlines (orange) clipped to the custom glacier AOI (red); (b) seasonal NDSI-derived area (\numrange{2015}{2026}) compared to the annual seasonal average and the 2010 GLIMS baseline (\qty{1.61}{\km\squared}).}
+    \caption{Glacier area evaluations: (a) Sentinel-2 NDSI masks (\numlist[list-final-separator={ \& }]{2015;2019;2023}) and historical GLIMS outlines (orange), as well as the custom glacier AOI (red); (b) seasonal NDSI-derived area (\numrange{2015}{2026}) compared to the annual seasonal average and the 2010 GLIMS baseline of \qty{1.61}{\km\squared}.}
     \label{fig:Glacier area evaluations}
 \end{figure}
 
 \subsection{Glacier surface temperature}
-Seasonal Landsat surface temperature composites show pronounced thermal contrasts between seasons and glacier zones (\autoref{fig:lst_spatial} and \autoref{fig:lst_profile}). Along the \qty{2000}{\m} glacier centreline (\qtyrange{600}{2600}{\m} in \autoref{fig:lst_profile}), winter (DJF) is the coldest season, with approximately \qty{-24}{\degreeCelsius} in the upper accumulation zone (\qty{750}{\m}) and a steady warming to \qty{-17}{\degreeCelsius} at the terminus. Spring (MAM) and autumn (SON) show intermediate, sub-freezing profiles. They begin near \qty{-14}{\degreeCelsius} at the upper boundary and rise down-glacier to roughly \qty{-5.5}{\degreeCelsius} in spring and \qty{-6.5}{\degreeCelsius} in autumn. In summer (JJA), the centreline stays near the melting point of \qty{0}{\degreeCelsius} across the upper and middle glacier and rises slightly to approximately \qty{2}{\degreeCelsius} at the terminus.
+Along the \qty{2000}{\m} glacier centreline (\qtyrange{600}{2600}{\m} in \autoref{fig:lst_profile}), winter (DJF) is the coldest season, with approximately \qty{-24}{\degreeCelsius} in the upper accumulation zone (\qty{750}{\m}) and a steady warming to \qty{-17}{\degreeCelsius} at the terminus. Spring (MAM) and autumn (SON) show intermediate, sub-freezing profiles. They begin near \qty{-14}{\degreeCelsius} at the upper boundary and rise down-glacier to roughly \qty{-5.5}{\degreeCelsius} in spring and \qty{-6.5}{\degreeCelsius} in autumn. In summer (JJA), the centreline stays near the melting point of \qty{0}{\degreeCelsius} across the upper and middle glacier and rises slightly to approximately \qty{2}{\degreeCelsius} at the terminus.
 
-Spatially (\autoref{fig:lst_spatial}), the glacier appears as a well-defined object that closely matches the 2010 GLIMS outline in spring, autumn and especially summer. In summer, the surrounding slopes exceed \qty{15}{\degreeCelsius} while the glacier interior remains near \qty{0}{\degreeCelsius}. In winter, the contrast between glacier and surroundings is weak. % TODO: verify against the winter panel of the spatial figure
-A trend in the annual mean temperature could not be determined reliably: the trend line varies strongly with the chosen area (initial AOI, tight AOI, GLIMS outline intersected with the tight AOI). % TODO: add trend figure if included, with values
+The seasonal Landsat surface temperature composites in \autoref{fig:lst_spatial} show significant thermal contrasts between seasons and glacier zones. Spatially (\autoref{fig:lst_spatial}), the glacier appears as a well-defined object that closely matches the 2010 GLIMS outline in spring, autumn and especially summer. In summer, the surrounding slopes exceed \qty{15}{\degreeCelsius} while the glacier interior remains near \qty{0}{\degreeCelsius}. In winter, the contrast between glacier and surroundings is weaker. However, a trend in glacier surface temperature over many years could not be determined reliably: the trend line varies strongly with the chosen area (initial AOI, tight AOI, GLIMS outline intersected with the tight AOI) and the applied model (linear, linear with sinusoidal component).
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[trim={2cm 0.2cm 5cm 0}, clip, width=\textwidth]{results/gst_line/lst_spatial_fig.png}
+    \includegraphics[width=\linewidth]{results/gst_line/lst_spatial_fig.png}
     \caption{Spatial surface temperature variation: multi-year seasonal mean daytime surface temperature derived from Landsat Collection 2 Surface Temperature (\numrange{2015}{2026}), overlaid with the area of interest (green) and the GLIMS glacier outlines (purple).}
     \label{fig:lst_spatial}
 \end{figure}
@@ -99,9 +96,9 @@ A trend in the annual mean temperature could not be determined reliably: the tre
 \end{figure}
 
 \subsection{Classifying wet snow}
-In all seasons, the wet fraction rises from February to June (\autoref{fig:wet_season}). In the control month February, it is low (about \numrange{0.05}{0.15}), and until April it stays mostly between \num{0.1} and \num{0.3}. From May onwards, the values increase and differ strongly between dates and years, reaching about \numrange{0.3}{0.9} in June on the ascending orbit. The descending orbit shows lower values: mostly below \num{0.25} until late May, followed by a sharp rise in June to about \numrange{0.3}{0.8}. In the histogram of the backscatter change (\autoref{fig:hist}, Appendix), February is centred at \qty{0}{\dB}, and only few pixels fall below the threshold. Later months shift towards lower values.
+In all seasons, the wet fraction rises from February to June (\autoref{fig:wet_season}). In the control month February, it is low (about \numrange{0.05}{0.15}), and until April it stays mostly between \num{0.1} and \num{0.3}. From May onwards, the values increase and differ strongly between dates and years, reaching about \numrange{0.3}{0.9} in June on the ascending orbit. The descending orbit shows lower values: mostly below \num{0.25} until late May, followed by a sharp rise in June to about \numrange{0.3}{0.8}.
 
-The spatial pattern of the wet frequency is shown for \num{2024} in \autoref{fig:wet_maps}. In March (ascending orbit), few pixels are wet. In April, the number of wet pixels increases, particularly on the western side of the area and partly outside the glacier outline. In May, wet frequencies of about \numrange{0.2}{0.6} cover most of the glacier, and single pixels exceed \num{0.8}. Neighbouring pixels often differ strongly, so the pattern is irregular.
+The spatial pattern of the wet frequency is shown for \num{2024} and the ascending orbit in \autoref{fig:wet_maps}. In March, few pixels are wet. In April, the number of wet pixels increases, particularly on the western side of the area and partly outside the glacier outline. In May, wet frequencies of about \numrange{0.2}{0.6} cover most of the glacier, and single pixels exceed \num{0.8}. Neighbouring pixels often differ strongly, so the pattern is irregular.
 
 \begin{figure}[htbp]
     \centering
@@ -113,14 +110,14 @@ The spatial pattern of the wet frequency is shown for \num{2024} in \autoref{fig
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\linewidth]{Figures/sar_snow_months_2024_ASCENDING.png}
-    \caption{Wet frequency in March, April and May \num{2024} (ascending orbit, \num{5} dates per month, \qty{200}{\m} grid). Green: study area; purple: GLIMS glacier outline.}
+    \caption{Wet frequency in March, April and May \num{2024} (ascending orbit, \num{5} dates per month, \qty{200}{\m} grid). Green: area of interest; purple: GLIMS glacier outline.}
     \label{fig:wet_maps}
 \end{figure}
 
 \section{Discussion}
 
 \subsection{Glacier area}
-In the clear periods of late summer and early autumn, the glacier area (\qtyrange{1.57}{2.04}{\km\squared}) remains close to the 2010 GLIMS baseline (\qty{1.61}{\km\squared}). This suggests a relatively stable area since 2010, after the retreat from \qty{1.87}{\km\squared} in 2001. The extreme seasonal swings of over \qty{3}{\km\squared} do not reflect real ice changes but weather and sensor limitations. Optical NDSI cannot separate fresh snow from glacier ice, so winter snow saturates the entire AOI (about \qty{3.47}{\km\squared}). In years with snow persisting all year or early autumn snowfall (2021--2022), the true glacier area cannot be measured. Conversely, heavy monsoon clouds block the sensor and produce low NDSI values, which artificially lower the July--August values towards \qty{0}{\km\squared}. Additionally, satellite swath edges, winter shadows and rock debris on the glacier tongue cause missing pixels or NDSI values below \num{0.4}. A reliable area change over the study period therefore cannot be stated, as no clear trend is visible within these uncertainties.
+In the clear periods of late summer and early autumn, the glacier area (\qtyrange{1.57}{2.04}{\km\squared}) remains close to the 2010 GLIMS baseline (\qty{1.61}{\km\squared}). This suggests a relatively stable area since 2010, after the retreat from \qty{1.87}{\km\squared} in 2001. The extreme seasonal swings of over \qty{3}{\km\squared} do not reflect real ice changes but weather and sensor limitations. Optical NDSI cannot separate fresh snow from glacier ice, so winter snow saturates the entire AOI (about \qty{3.47}{\km\squared}). In years with snow persisting all year or early autumn snowfall (2021--2022), the true glacier area cannot be measured. A reliable area change over the study period therefore cannot be stated, as no clear trend is visible within these uncertainties.
 
 Tightening the AOI and focusing on late-summer imagery thus provides realistic estimates in clear years, although optical methods remain strongly constrained by snow and clouds. Future studies could test alternative band ratios such as NIR/SWIR (B8/B11) or Red/SWIR (B4/B11) for shadowed and dirty ice, apply pixel-level cloud masks (QA60), or combine optical data with Sentinel-1 radar and digital elevation models (DEMs) to monitor the glacier through monsoon cloud cover.
 
@@ -132,15 +129,14 @@ As a result, the temperature difference between the upper and lower glacier almo
 Daytime Landsat scenes represent only the satellite overpass time and cannot capture the daily cycle. Moreover, the dependence of the trend on the selected area shows that an annual trend cannot be derived robustly from this dataset.
 
 \subsection{Classifying wet snow}
-The rise of the wet fraction towards summer is consistent with increasing melt and with the temperature increase in spring and summer (\autoref{fig:lst_spatial}). The higher wet frequency on the western side in April coincides with higher spring surface temperatures on this side. The lower descending values may relate to the acquisition time, as the satellite passes in the early morning (descending) or in the evening (ascending), and snow that refroze overnight appears dry in the morning. \cite{lund_interpreting_2022, torralbo_characterizing_2023} showed this at a flat site in Colorado, so for this glacier it remains a hypothesis. The strong scatter between dates probably reflects changing weather, but a single scene cannot show this. The large differences between years do not allow a trend to be stated from nine seasons. A trend is also difficult to derive because the reference differs between seasons.
+The rise of the wet fraction towards summer is consistent with increasing melt and with the temperature increase in spring and summer (\autoref{fig:lst_spatial}). The higher wet frequency on the western side in April coincides with higher spring surface temperatures on this side. The lower descending values may relate to the acquisition time, as the satellite passes in the early morning (descending) or in the evening (ascending), and snow that refroze overnight appears dry in the morning. \cite{lund_interpreting_2022} showed this at a flat site in Colorado, so for this glacier it remains a hypothesis. The strong scatter between dates probably reflects changing weather, but a single scene cannot show this. The large differences between years do not allow a trend to be stated from nine seasons. A trend is also difficult to derive because the reference differs between seasons.
 
-A fixed threshold is a simplification: the histograms show no clear gap between dry and wet pixels, and the best threshold varies between scenes (\qtyrange{-2.2}{-3.9}{\dB} in one study) and with land cover and snow conditions \citep{torralbo_characterizing_2023, li_mapping_2025}. Radar cannot detect dry snow, so ``dry'' here means ``not wet'' and includes bare rock, ice and snow-free ground. Steep terrain distorts the signal (layover, shadow, varying viewing angle), speckle causes the patchy pattern, and wet rock or debris may be mistaken for wet snow, which may explain wet pixels outside the glacier outline. Additionally, since the reference period includes February, any early melt there would hide changes.
-
-In-situ measurements could verify the data. Snow pits dug at the time of a satellite pass could measure the water content of the snow with a dielectric snow sensor, together with the snow temperature. Temperature loggers in the snow or a weather station, plus a time-lapse camera, would show whether the snow is wet or frozen at the morning and evening overpasses and would thereby also test the orbit difference.
+A fixed threshold is a simplification: the histograms show no clear gap between dry and wet pixels, and the best threshold varies between scenes (\qtyrange{-2.2}{-3.9}{\dB} in one study) and with land cover and snow conditions \citep{torralbo_characterizing_2023, li_mapping_2025}. Radar cannot detect dry snow, so ''dry'' here means ''not wet'' and includes bare rock, ice and snow-free ground. Steep terrain distorts the signal (layover, shadow, varying viewing angle), speckle causes the patchy pattern, and wet rock or debris may be mistaken for wet snow, which may explain wet pixels outside the glacier outline. Additionally, since the reference period includes February, any early melt there would hide changes. To verify the data, in-situ measurements of snow wetness, surface temperature and a time-lapse camera would be helpful for future research.
 
 \section{Conclusion}
-Optical, thermal and radar satellite data were combined to describe an unnamed glacier near Selima Tso Taal. In clear periods, the glacier area derived from Sentinel-2 stays close to the 2010 GLIMS area of \qty{1.61}{\km\squared} and shows no clear trend, but snow and cloud cover limit the reliability of the optical method. The Landsat surface temperature follows a clear seasonal cycle, from about \qty{-24}{\degreeCelsius} in the upper glacier in winter to values near \qty{0}{\degreeCelsius} in summer, when the surrounding rock exceeds \qty{15}{\degreeCelsius}. The wet fraction from Sentinel-1 rises from February to June in all nine seasons, while it varies strongly between dates and years. Overall, the data support the seasonal behaviour of the glacier, whereas long-term changes cannot be stated from the results. Ground-based measurements and radar-supported area mapping would be the next steps to reduce these uncertainties.
+Optical, thermal and radar satellite data were combined to describe an unnamed glacier in Nepal. In clear periods, the glacier area derived from Sentinel-2 stays close to the 2010 GLIMS area of \qty{1.61}{\km\squared} and shows no clear trend, but snow and cloud cover limit the reliability of the optical method. The Landsat surface temperature follows a clear seasonal cycle, from about \qty{-24}{\degreeCelsius} in the upper glacier in winter to values near \qty{0}{\degreeCelsius} in summer, when the surrounding rock exceeds \qty{15}{\degreeCelsius}. The wet fraction from Sentinel-1 rises from February to June in all nine seasons, while it varies strongly between dates, years and orbit direction. Overall, the data support the seasonal behaviour of the glacier, whereas long-term changes cannot be stated from the results, because of the noisy data and an insufficient evaluation period. Ground-based measurements and radar-supported area mapping would be the next steps to reduce these uncertainties.
 
+\clearpage
 \bibliographystyle{apalike-ejor}
 \bibliography{references.bib}
 
@@ -176,19 +172,21 @@ Optical, thermal and radar satellite data were combined to describe an unnamed g
 
 \subsection{Source code}
 
-Link to Github / Google Colab. Is a Google Colab actually needed or is Github fine?? % TODO: insert links to all GEE scripts
+All source code is available on github via the following link:
+\href{https://github.com/jgnnfw/EO_Cryosphere}{https://github.com/jgnnfw/EO\_Cryosphere}
 
+\clearpage
 \subsection{Additional Figures}
 
 \FloatBarrier
-\begin{figure}[h!]
+\begin{figure}[htbp]
     \centering
     \includegraphics[trim={0 0.15cm 0 0}, clip, width=\linewidth]{results/S2_BOA_number_of_observations.png}
     \caption{Analysis of suitable satellite data}
     \label{fig:s2_boa_historgram}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.8\linewidth]{results/sar_snow/sar_snow_diff_history_2024_ASCENDING.png}
     \caption{Histogram of the backscatter change against the dry reference (December to February). February is included as control month.}
@@ -207,7 +205,8 @@ Link to Github / Google Colab. Is a Google Colab actually needed or is Github fi
     \toprule
     \makecell[l]{Artificial Intelligence} & Use & Scope & Comments \\
     \midrule
-    Claude Sonnet 5.5 & Help with coding & Python modules & \href{https://claude.ai/share/8e2d447e-3fdb-4f93-a751-2df9f7116bd0}{Chat Link} \\
+    Claude Sonnet 5.5 & Help with coding & Python modules & \href{https://claude.ai/share/8e2d447e-3fdb-4f93-a751-2df9f7116bd0}{Example chat link} \\
+    Claude Sonnet 5.5 & Consistency and Coherence across the report & Entire Report & - \\
     \bottomrule
     \end{tabular}
 \end{table}
