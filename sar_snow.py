@@ -11,7 +11,6 @@ Both are given in season order, the season starts with the first reference month
 months >= first reference month belong to sy-1 if the season wraps over New Year, all others to sy.
 Default: ref Dec-Feb, evaluated Dec-May, so sy = Dec (sy-1) ... May sy.
 """
-from typing import Literal
 from plotting import *
 import math
 import ee
@@ -130,6 +129,39 @@ def wet_coll(roi: ee.Geometry, sy: int, orbit: str, pol: str = "VV", thr: float 
 def wet_freq(coll: ee.ImageCollection, month: int) -> ee.Image:
     """Fraction of scenes in `month` classified wet (0 = always dry, 1 = always wet)."""
     return coll.filter(ee.Filter.calendarRange(month, month, "month")).select("wet").mean()
+
+
+def wet_coll_years(roi: ee.Geometry, years: list[int], orbit: str, pol: str = "VV", thr: float = -2.0,
+                   ref_min: float = -20.0, min_ref: int = 3,
+                   ref_months: tuple[int, ...] = REF_MONTHS,
+                   wet_months: tuple[int, ...] = WET_MONTHS,
+                   debug: bool = False) -> ee.ImageCollection:
+    """Daily classified mosaics (bands `wet`, `diff`) of all season years in `years` merged to one collection.
+    Each reference is still built per season year. wet_freq(coll, month) on it averages over all scenes of
+    that month in all years (years with more scenes weigh more)."""
+    colls = []
+    myprint(debug, "Getting collection years: ", end="")
+    for sy in years:
+        colls.append(wet_coll(roi, sy, orbit, pol, thr, ref_min, min_ref, ref_months, wet_months))
+        myprint(debug, sy, end="; ")
+    out = colls[0]
+    for c in colls[1:]:
+        out = out.merge(c)
+    myprint(debug, "Done.")
+    return out
+
+
+def wet_freq_years(roi: ee.Geometry, years: list[int], orbit: str, month: int, pol: str = "VV",
+                   thr: float = -2.0, ref_months: tuple[int, ...] = REF_MONTHS,
+                   wet_months: tuple[int, ...] = WET_MONTHS) -> ee.Image:
+    """Mean over `years` of the per-year wet frequency in `month` (every year weighs the same,
+    years without scenes in that month are skipped)."""
+    imgs = []
+    for sy in years:
+        coll = wet_coll(roi, sy, orbit, pol, thr, ref_months=ref_months, wet_months=wet_months)
+        if coll.filter(ee.Filter.calendarRange(month, month, "month")).size().getInfo() > 0:
+            imgs.append(wet_freq(coll, month))
+    return ee.ImageCollection.fromImages(imgs).mean()
 
 
 def melt_onset(coll: ee.ImageCollection, sy: int, ref_months: tuple[int, ...] = REF_MONTHS,

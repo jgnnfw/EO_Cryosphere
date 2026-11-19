@@ -1,6 +1,7 @@
 """This file should contain functions for plotting with matplotlib.
 It insures the main Jupyter notebook stays clean from plotting stuff.
 return geemap.Map or matplotlib Figure."""
+from collections.abc import Collection
 import ee
 import calendar
 import geemap
@@ -264,7 +265,7 @@ def plot_sar_snow_elev(bdf: pd.DataFrame, sy: int, orbit: str, min_px: int = 20)
 
 
 def plot_sar_snow_diff_hist(roi: ee.Geometry, coll: ee.ImageCollection,
-                            title_sy: int, title_orbit: str,
+                            title_sy: int | str, title_orbit: str,
                             months: tuple[int, ...] = (12, 1, 2, 3, 4, 5),  thr: float = -2.0,
                             scale: float = 30, rng: tuple[float, float] = (-15, 10),
                             nbins: int = 50, debug: bool = False) -> matplotlib.figure.Figure:
@@ -488,9 +489,9 @@ def _geom_rings(geom: dict) -> list[list[list[float]]]:
     return []
 
 
-def plot_sar_snow_month_images(roi: ee.Geometry, coll: ee.ImageCollection, title_sy: int, title_orbit: str,
-                               months: tuple[int, ...] = (3, 4, 5), glims: ee.Geometry | None = None,
-                               scale: float = 100, ncols: int = 3) -> matplotlib.figure.Figure:
+def plot_sar_snow_month_images(roi: ee.Geometry, colls: ee.ImageCollection | list[ee.ImageCollection], title_sy: int | str, title_orbit: str,
+                               months: Collection[int] = (3, 4, 5), glims: ee.Geometry | None = None,
+                               scale: float = 100, ncols: int = 3,) -> matplotlib.figure.Figure:
     """Wet frequency per month of season year `sy` as image (one panel per month) with AOI and GLIMS outline.
     Use coll = wet_coll(roi, sy, orbit, ...) first; glims = get_latest_glims(roi)."""
     ring = _geom_rings(roi.bounds().getInfo())[0]
@@ -511,15 +512,24 @@ def plot_sar_snow_month_images(roi: ee.Geometry, coll: ee.ImageCollection, title
     fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 4.2 * nrows), sharex=True, sharey=True,
                              squeeze=False)
     im = None
+    if isinstance(colls, ee.ImageCollection):
+        colls = [colls]
     for ax, mo in zip(axes.ravel(), months):
-        sub = coll.filter(ee.Filter.calendarRange(mo, mo, "month"))
-        n = sub.size().getInfo()
-        ax.set_title(f"{calendar.month_abbr[mo]} {title_sy} ($n={n}$ dates)")
-        if n > 0:
+        arrs, n = [], 0
+        for c in colls:  # one small request per year, averaged client-side
+            sub = c.filter(ee.Filter.calendarRange(mo, mo, "month"))
+            k = sub.size().getInfo()
+            if k == 0:
+                continue
+            n += k
             img = sub.select("wet").mean().clip(roi).unmask(-1)
-            arr = ee.data.computePixels({"expression": img, "fileFormat": "NUMPY_NDARRAY", "grid": grid})["wet"]
-            im = ax.imshow(np.where(arr < 0, np.nan, arr), cmap="Blues", vmin=0, vmax=1,
+            a = ee.data.computePixels({"expression": img, "fileFormat": "NUMPY_NDARRAY", "grid": grid})["wet"]
+            arrs.append(np.where(a < 0, np.nan, a.astype(float)))
+        ax.set_title(f"{calendar.month_abbr[mo]} {title_sy} ($n={n}$ dates)")
+        if arrs:
+            im = ax.imshow(np.nanmean(arrs, axis=0), cmap="Blues", vmin=0, vmax=1,
                            extent=extent, aspect="auto")
+        # ... outlines / limits unchanged
         for r in glims_rings:
             xs, ys = zip(*[(pt[0], pt[1]) for pt in r])
             ax.plot(xs, ys, color="purple", linewidth=1.5, zorder=3)
