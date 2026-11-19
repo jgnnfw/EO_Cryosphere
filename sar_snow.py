@@ -255,31 +255,17 @@ def monthly_mean_table(df: pd.DataFrame) -> pd.DataFrame:
     return out.reset_index()
 
 
-def show_sar_snow_maps(roi: ee.Geometry, sy: int, orbit: Literal["ASCENDING", "DESCENDING"],
+def show_sar_snow_maps(roi: ee.Geometry, sy: int, w_coll: ee.ImageCollection,
                        months: tuple[int, ...] | None = None, glacier_mask: ee.Geometry | None = None,
                        ref_months: tuple[int, ...] = REF_MONTHS,
                        wet_months: tuple[int, ...] = WET_MONTHS) -> geemap.Map:
     """Interactive map; `months` (layers) default to `wet_months`."""
     months = months or wet_months
-    coll = wet_coll(roi, sy, orbit, ref_months=ref_months, wet_months=wet_months)
-    wet_freqs = {mo:wet_freq(coll, mo) for mo in months}
-    m_onset = melt_onset(coll, sy, ref_months, wet_months)
-    return plot_sar_snow_maps(roi, coll, wet_freqs, m_onset, sy, glacier_mask=glacier_mask)
+    wet_freqs = {mo:wet_freq(w_coll, mo) for mo in months}
+    m_onset = melt_onset(w_coll, sy, ref_months, wet_months)
+    return plot_sar_snow_maps(roi, w_coll, wet_freqs, m_onset, sy, glacier_mask=glacier_mask)
 
 
-def show_sar_snow_diff_history(roi: ee.Geometry, sy: int, orbit: Literal["ASCENDING", "DESCENDING"],
-                               ref_months: tuple[int, ...] = REF_MONTHS,
-                               wet_months: tuple[int, ...] = WET_MONTHS, **kwargs):
-    kwargs.setdefault("months", wet_months)
-    coll = wet_coll(roi, sy, orbit, ref_months=ref_months, wet_months=wet_months)
-    return plot_sar_snow_diff_hist(roi, coll=coll, **kwargs)
-
-
-def show_sar_snow_month_images(roi: ee.Geometry, sy: int, orbit: Literal["ASCENDING", "DESCENDING"],
-                               months: tuple[int, ...] | None = None, glims: ee.Geometry | None = None,
-                               ref_months: tuple[int, ...] = REF_MONTHS,
-                               wet_months: tuple[int, ...] = WET_MONTHS, **kwargs):
-    """Wet frequency image per month of season year `sy`; `months` default to `wet_months`.
-    `glims` = result of get_latest_glims(roi)."""
-    coll = wet_coll(roi, sy, orbit, ref_months=ref_months, wet_months=wet_months)
-    return plot_sar_snow_month_images(roi, coll, sy, orbit, months or wet_months, glims=glims, **kwargs)
+def show_sar_snow_diff_history(roi: ee.Geometry, w_coll: ee.ImageCollection,
+                               months: tuple[int, ...] = (12, 1, 2, 3, 4, 5), **kwargs):
+    return plot_sar_snow_diff_hist(roi, coll=w_coll, months=months, **kwargs)

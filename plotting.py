@@ -264,6 +264,7 @@ def plot_sar_snow_elev(bdf: pd.DataFrame, sy: int, orbit: str, min_px: int = 20)
 
 
 def plot_sar_snow_diff_hist(roi: ee.Geometry, coll: ee.ImageCollection,
+                            title_sy: int, title_orbit: str,
                             months: tuple[int, ...] = (12, 1, 2, 3, 4, 5),  thr: float = -2.0,
                             scale: float = 30, rng: tuple[float, float] = (-15, 10),
                             nbins: int = 50, debug: bool = False) -> matplotlib.figure.Figure:
@@ -285,6 +286,7 @@ def plot_sar_snow_diff_hist(roi: ee.Geometry, coll: ee.ImageCollection,
     ax.axvline(thr, color="k", ls="--", label=f"thr {thr} dB")
     ax.set_xlabel("backscatter change vs. dry reference (dB)")
     ax.set_ylabel("pixel share")
+    ax.set_title(f"Backscatter change per month in {title_sy} on {title_orbit.lower()} orbit.")
     ax.legend()
     fig.tight_layout()
     return fig
@@ -486,7 +488,7 @@ def _geom_rings(geom: dict) -> list[list[list[float]]]:
     return []
 
 
-def plot_sar_snow_month_images(roi: ee.Geometry, coll: ee.ImageCollection, sy: int, orbit: str,
+def plot_sar_snow_month_images(roi: ee.Geometry, coll: ee.ImageCollection, title_sy: int, title_orbit: str,
                                months: tuple[int, ...] = (3, 4, 5), glims: ee.Geometry | None = None,
                                scale: float = 100, ncols: int = 3) -> matplotlib.figure.Figure:
     """Wet frequency per month of season year `sy` as image (one panel per month) with AOI and GLIMS outline.
@@ -512,7 +514,7 @@ def plot_sar_snow_month_images(roi: ee.Geometry, coll: ee.ImageCollection, sy: i
     for ax, mo in zip(axes.ravel(), months):
         sub = coll.filter(ee.Filter.calendarRange(mo, mo, "month"))
         n = sub.size().getInfo()
-        ax.set_title(f"{calendar.month_abbr[mo]} {sy} ($n={n}$ dates)")
+        ax.set_title(f"{calendar.month_abbr[mo]} {title_sy} ($n={n}$ dates)")
         if n > 0:
             img = sub.select("wet").mean().clip(roi).unmask(-1)
             arr = ee.data.computePixels({"expression": img, "fileFormat": "NUMPY_NDARRAY", "grid": grid})["wet"]
@@ -538,8 +540,8 @@ def plot_sar_snow_month_images(roi: ee.Geometry, coll: ee.ImageCollection, sy: i
     handles = [Line2D([], [], color="tab:green", lw=1.5, label="AOI")]
     if glims is not None:
         handles.append(Line2D([], [], color="purple", lw=1.5, label="GLIMS glacier outline (latest) clipped to AOI"))
-    fig.legend(handles=handles, loc="lower center", ncol=len(handles), bbox_to_anchor=(0.5, -0.03))
-    fig.suptitle(f"Wet snow frequency {sy}, {orbit.lower()}", y=1.02, fontsize=13)
+    fig.legend(handles=handles, loc="lower center", ncol=len(handles), bbox_to_anchor=(0.5, -0.1))
+    fig.suptitle(f"Wet snow frequency {title_sy}, {title_orbit.lower()}", y=1.02, fontsize=13)
     return fig
 
 
