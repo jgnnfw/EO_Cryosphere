@@ -160,7 +160,7 @@ def season_stats(roi: ee.Geometry, sy: int, orbit: str, glacier_mask: ee.Image |
                  wet_months: tuple[int, ...] = WET_MONTHS) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Per-date wet fraction (ROI, optional glacier) and per-date/elevation-band wet fraction."""
 
-    myprint(debug, f"sy {sy} {orbit}:", end="")
+    myprint(debug, f"sy {sy} {orbit}: ", end="")
     coll = wet_coll(roi, sy, orbit, pol, thr, ref_months=ref_months, wet_months=wet_months)
     start = season_window(sy, ref_months, wet_months)[0]
 
