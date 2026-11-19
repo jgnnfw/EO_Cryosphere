@@ -1,6 +1,7 @@
 """This file should contain functions for plotting with matplotlib.
 It insures the main Jupyter notebook stays clean from plotting stuff.
 return geemap.Map or matplotlib Figure."""
+from collections.abc import Collection
 import ee
 import calendar
 import geemap
@@ -264,6 +265,7 @@ def plot_sar_snow_elev(bdf: pd.DataFrame, sy: int, orbit: str, min_px: int = 20)
 
 
 def plot_sar_snow_diff_hist(roi: ee.Geometry, coll: ee.ImageCollection,
+                            title_sy: int | str, title_orbit: str,
                             months: tuple[int, ...] = (12, 1, 2, 3, 4, 5),  thr: float = -2.0,
                             scale: float = 30, rng: tuple[float, float] = (-15, 10),
                             nbins: int = 50, debug: bool = False) -> matplotlib.figure.Figure:
@@ -285,6 +287,7 @@ def plot_sar_snow_diff_hist(roi: ee.Geometry, coll: ee.ImageCollection,
     ax.axvline(thr, color="k", ls="--", label=f"thr {thr} dB")
     ax.set_xlabel("backscatter change vs. dry reference (dB)")
     ax.set_ylabel("pixel share")
+    ax.set_title(f"Backscatter change per month in {title_sy} on {title_orbit.lower()} orbit.")
     ax.legend()
     fig.tight_layout()
     return fig
@@ -338,7 +341,7 @@ def map_glacier_area(
         color = colors[i % len(colors)]
         vectors = mask.selfMask().toInt().reduceToVectors(geometry=mask.geometry(), scale=30, geometryType='polygon',
                                                           eightConnected=True, maxPixels=1e13)
-        geometry = vectors.geometry().dissolve().simplify(30)
+        geometry = vectors.geometry(maxError=1).dissolve(maxError=1).simplify(30)
         m.addLayer(geometry, {"color": color}, f"Snow/ice outline {year}")
     if glacier_mask is not None:
         outline = ee.Image().paint(ee.FeatureCollection([ee.Feature(glacier_mask)]), 1, 2)
@@ -475,6 +478,83 @@ def plot_gst_line_profile(
     return fig
 
 
+def _geom_rings(geom: dict) -> list[list[list[float]]]:
+    """Rings of Polygon/MultiPolygon; recurses into GeometryCollection, ignores lines/points."""
+    if geom["type"] == "GeometryCollection":
+        return [r for g in geom["geometries"] for r in _geom_rings(g)]
+    if geom["type"] == "Polygon":
+        return geom["coordinates"]
+    if geom["type"] == "MultiPolygon":
+        return [ring for poly in geom["coordinates"] for ring in poly]
+    return []
+
+
+def plot_sar_snow_month_images(roi: ee.Geometry, colls: ee.ImageCollection | list[ee.ImageCollection], title_sy: int | str, title_orbit: str,
+                               months: Collection[int] = (3, 4, 5), glims: ee.Geometry | None = None,
+                               scale: float = 100, ncols: int = 3,) -> matplotlib.figure.Figure:
+    """Wet frequency per month of season year `sy` as image (one panel per month) with AOI and GLIMS outline.
+    Use coll = wet_coll(roi, sy, orbit, ...) first; glims = get_latest_glims(roi)."""
+    ring = _geom_rings(roi.bounds().getInfo())[0]
+    lon_min, lon_max = min(p[0] for p in ring), max(p[0] for p in ring)
+    lat_min, lat_max = min(p[1] for p in ring), max(p[1] for p in ring)
+    extent = (lon_min, lon_max, lat_min, lat_max)
+    w = max(int(np.ceil((lon_max - lon_min) * 111320 * np.cos(np.radians((lat_min + lat_max) / 2)) / scale)), 1)
+    h = max(int(np.ceil((lat_max - lat_min) * 111320 / scale)), 1)
+    grid = {"dimensions": {"width": w, "height": h}, "crsCode": "EPSG:4326",
+            "affineTransform": {"scaleX": (lon_max - lon_min) / w, "shearX": 0, "translateX": lon_min,
+                                "shearY": 0, "scaleY": -(lat_max - lat_min) / h, "translateY": lat_max}}
+
+    aoi_rings = _geom_rings(roi.getInfo())
+    glims_rings = _geom_rings(glims.getInfo()) if glims is not None else []
+
+    ncols = min(ncols, len(months))
+    nrows = int(np.ceil(len(months) / ncols))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 4.2 * nrows), sharex=True, sharey=True,
+                             squeeze=False)
+    im = None
+    if isinstance(colls, ee.ImageCollection):
+        colls = [colls]
+    for ax, mo in zip(axes.ravel(), months):
+        arrs, n = [], 0
+        for c in colls:  # one small request per year, averaged client-side
+            sub = c.filter(ee.Filter.calendarRange(mo, mo, "month"))
+            k = sub.size().getInfo()
+            if k == 0:
+                continue
+            n += k
+            img = sub.select("wet").mean().clip(roi).unmask(-1)
+            a = ee.data.computePixels({"expression": img, "fileFormat": "NUMPY_NDARRAY", "grid": grid})["wet"]
+            arrs.append(np.where(a < 0, np.nan, a.astype(float)))
+        ax.set_title(f"{calendar.month_abbr[mo]} {title_sy} ($n={n}$ dates)")
+        if arrs:
+            im = ax.imshow(np.nanmean(arrs, axis=0), cmap="Blues", vmin=0, vmax=1,
+                           extent=extent, aspect="auto")
+        # ... outlines / limits unchanged
+        for r in glims_rings:
+            xs, ys = zip(*[(pt[0], pt[1]) for pt in r])
+            ax.plot(xs, ys, color="purple", linewidth=1.5, zorder=3)
+        for r in aoi_rings:
+            xs, ys = zip(*[(pt[0], pt[1]) for pt in r])
+            ax.plot(xs, ys, color="tab:green", linewidth=1.5, zorder=4)
+        ax.set_xlim(extent[:2])
+        ax.set_ylim(extent[2:])
+    for ax in axes.ravel()[len(months):]:
+        ax.axis("off")
+    for ax in axes[-1]:
+        ax.set_xlabel("Longitude (°E)")
+    for ax in axes[:, 0]:
+        ax.set_ylabel("Latitude (°N)")
+
+    if im is not None:
+        fig.colorbar(im, ax=axes.ravel().tolist(), shrink=0.85, pad=0.02).set_label("wet frequency (0 dry, 1 wet)")
+    handles = [Line2D([], [], color="tab:green", lw=1.5, label="AOI")]
+    if glims is not None:
+        handles.append(Line2D([], [], color="purple", lw=1.5, label="GLIMS glacier outline (latest) clipped to AOI"))
+    fig.legend(handles=handles, loc="lower center", ncol=len(handles), bbox_to_anchor=(0.5, -0.1))
+    fig.suptitle(f"Wet snow frequency {title_sy}, {title_orbit.lower()}", y=1.02, fontsize=13)
+    return fig
+
+
 def plot_gst_line_seasons(
     arrays: dict[str, np.ndarray],
     extent: tuple[float, float, float, float],
@@ -482,43 +562,18 @@ def plot_gst_line_seasons(
     aoi: ee.Geometry,
     vmin: float = -25,
     vmax: float = 15,
-    glims: ee.FeatureCollection | None = None,
+    glims: ee.Geometry | None = None,
 ) -> matplotlib.figure.Figure:
-    """One LST map per season. `extent` = (lon_min, lon_max, lat_min, lat_max)."""
+    """One LST map per season. `extent` = (lon_min, lon_max, lat_min, lat_max).
+    `glims` = most recent GLIMS outline already clipped to the AOI, see get_latest_glims."""
     labels = {"Winter_DJF": "Winter (DJF)", "Spring_MAM": "Spring (MAM)",
               "Summer_JJA": "Summer (JJA)", "Autumn_SON": "Autumn (SON)"}
     fig, axes = plt.subplots(1, len(arrays), figsize=(14, 5), dpi=300, sharey=True)
     axes = np.atleast_1d(axes)
     im = None
 
-    def _rings(geometry: dict) -> list[list[list[float]]]:
-        """All rings (exterior + holes) of a GeoJSON Polygon/MultiPolygon."""
-        if geometry["type"] == "Polygon":
-            return geometry["coordinates"]
-        if geometry["type"] == "MultiPolygon":
-            return [ring for poly in geometry["coordinates"] for ring in poly]
-        raise ValueError(f"Unsupported geometry type: {geometry['type']}")
-
-    def _polys(geom: dict) -> list:
-        """Rings of Polygon/MultiPolygon; recurses into GeometryCollection, ignores lines/points."""
-        if geom["type"] == "GeometryCollection":
-            return [r for g in geom["geometries"] for r in _polys(g)]
-        if geom["type"] in ("Polygon", "MultiPolygon"):
-            return _rings(geom)
-        return []
-
-    aoi_rings = _rings(aoi.getInfo()) if aoi is not None else []
-    glims_rings = []
-    if glims is not None:
-        lon_min, lon_max, lat_min, lat_max = extent
-        bbox = ee.Geometry.Rectangle([lon_min, lat_min, lon_max, lat_max])
-        in_view = glims.filterBounds(bbox)
-        newest = in_view.aggregate_max("src_date").getInfo()
-
-        if newest is not None:
-            sel = in_view.filter(ee.Filter.eq("src_date", newest))
-            clipped = sel.geometry().intersection(aoi, ee.ErrorMargin(1)).getInfo()
-            glims_rings = _polys(clipped)
+    aoi_rings = _geom_rings(aoi.getInfo()) if aoi is not None else []
+    glims_rings = _geom_rings(glims.getInfo()) if glims is not None else []
 
     for ax, (name, arr) in zip(axes, arrays.items()):
         im = ax.imshow(arr, cmap="RdYlBu_r", vmin=vmin, vmax=vmax, extent=extent, aspect="auto")
@@ -542,7 +597,7 @@ def plot_gst_line_seasons(
     if aoi is not None:
         handles.append(Line2D([], [], color="tab:green", lw=1.5, label="AOI"))
     if glims is not None:
-        handles.append(Line2D([], [], color="purple", lw=1.5, label="GLIMS glacier outline (2010) clipped to AOI"))
+        handles.append(Line2D([], [], color="purple", lw=1.5, label="GLIMS glacier outline (latest) clipped to AOI"))
     if handles:
         fig.legend(handles=handles, loc="lower center", ncol=len(handles), bbox_to_anchor=(0.5, -0.05))
 
