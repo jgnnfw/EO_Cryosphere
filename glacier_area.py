@@ -172,6 +172,6 @@ def glims_area_by_year(glims: ee.FeatureCollection, roi: ee.Geometry,
 
         myprint(debug, f"{year}: {area:.2f}; ", end="")
 
-    myprint(debug)
+    myprint(debug, "\nTotal:",  *[f"{year}: {area:.2f};" for year, area in sorted(area_by_year.items())])
 
     return pd.DataFrame(sorted(area_by_year.items()), columns=["year", "area"])

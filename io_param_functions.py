@@ -84,18 +84,36 @@ def study_region(roi: ee.Geometry, glacier_mask: ee.Geometry | None = None) -> e
     return roi if glacier_mask is None else glacier_mask.intersection(roi, 1)
 
 
-def get_glacier_mask(roi: ee.Geometry, debug: bool = False) -> tuple[ee.Image, str]:
-    """Uses public GLIMS outlines if present in the ROI, else the polygon ROI itself.
-    :param roi: given region of interest in which the glacier lies, as list[[lon, lat], ...]
-    :return: ee.Image as constant 1 on glacer area defined above and a status string which outlines were used.
+def get_latest_glims(roi: ee.Geometry, debug: bool = False) -> ee.Geometry | None:
+    """Most recent GLIMS outline in the ROI: all polygons with the latest src_date, intersected with the ROI.
+    :param roi: given region of interest in which the glacier lies
+    :return: ee.Geometry clipped to the ROI, None if no outlines are found.
     """
+    g = ee.FeatureCollection("GLIMS/current").filterBounds(roi)
+    newest = g.aggregate_max("src_date").getInfo()
+    if newest is None:
+        myprint(debug, "no GLIMS outlines in ROI")
+        return None
+    myprint(debug, f"GLIMS src_date: {newest}")
+    return g.filter(ee.Filter.eq("src_date", newest)).geometry().intersection(roi, ee.ErrorMargin(1))
+
+
+def get_glacier_mask(roi: ee.Geometry, debug: bool = False) -> tuple[ee.Image, str]:
+    """Uses the most recent public GLIMS outlines (clipped to the ROI) if present, else the polygon ROI itself.
+    :param roi: given region of interest in which the glacier lies
+    :return: ee.Image as constant 1 on glacier area defined above and a status string which outlines were used.
+    """
+    glims = None
     try:
-        g = ee.FeatureCollection("GLIMS/current").filterBounds(roi)
-        if g.size().getInfo() > 0:
-            result = ee.Image().byte().paint(g, 1).selfMask(), "GLIMS/current outlines"
+        glims = get_latest_glims(roi, debug)
     except Exception as exc:  # asset missing / no access
         print("GLIMS not usable:", exc)
-        result =  ee.Image.constant(1).clip(roi).selfMask(), "ROI polygon (no outlines found)"
+
+    if glims is not None:
+        mask = ee.Image().byte().paint(ee.FeatureCollection([ee.Feature(glims)]), 1).selfMask()
+        result = mask, "GLIMS/current outlines (latest src_date, clipped to ROI)"
+    else:
+        result = ee.Image.constant(1).clip(roi).selfMask(), "ROI polygon (no outlines found)"
 
     myprint(debug, result[1])
     return result

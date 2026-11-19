@@ -2,11 +2,14 @@
 
 Principle: wet snow absorbs C-band radar, so backscatter drops by several dB compared with
 dry snow. Per pixel: diff = sigma0_scene[dB] - sigma0_dry_ref[dB]; wet if diff < thr (-2 dB).
-The reference is the median of Dec-Feb scenes of the same season, same orbit direction and
-same relative orbit, so viewing geometry cancels out. A DEM-based layover/shadow/slope mask
-removes pixels where the SAR geometry is unreliable.
+The reference is the median of the scenes of the reference months of the same season, same orbit
+direction and same relative orbit, so viewing geometry cancels out. A DEM-based layover/shadow/slope
+mask removes pixels where the SAR geometry is unreliable.
 
-Season year `sy`: Dec (sy-1) ... May sy. Winter = Dec-Feb, spring = Mar-May.
+Months are chosen by the user: `ref_months` (dry reference) and `wet_months` (months classified).
+Both are given in season order, the season starts with the first reference month. Season year `sy`:
+months >= first reference month belong to sy-1 if the season wraps over New Year, all others to sy.
+Default: ref Dec-Feb, evaluated Dec-May, so sy = Dec (sy-1) ... May sy.
 """
 from typing import Literal
 from plotting import *
@@ -20,6 +23,35 @@ ORBITS = ("ASCENDING", "DESCENDING")
 # approx. azimuth (deg from north) pointing from the ground towards the satellite at ~28N
 SENSOR_AZ = {"ASCENDING": 261.0, "DESCENDING": 99.0}
 MONTHS: tuple[int, ...] = (12, 1, 2, 3, 4, 5)
+REF_MONTHS: tuple[int, ...] = (12, 1, 2)
+WET_MONTHS: tuple[int, ...] = MONTHS
+
+
+# --------------- season / months ----------------------------------------------------------
+def season_months(ref_months: tuple[int, ...] = REF_MONTHS, wet_months: tuple[int, ...] = WET_MONTHS) -> tuple[int, ...]:
+    """All months of the season in chronological order, starting with the first reference month."""
+    first = ref_months[0]
+    return tuple(sorted(set(ref_months) | set(wet_months), key=lambda m: (m - first) % 12))
+
+
+def season_window(sy: int, ref_months: tuple[int, ...] = REF_MONTHS,
+                  wet_months: tuple[int, ...] = WET_MONTHS) -> tuple[str, str]:
+    """(start, end) dates 'YYYY-MM-DD' of season year `sy` (end exclusive)."""
+    ms, first = season_months(ref_months, wet_months), ref_months[0]
+    wraps = any(m < first for m in ms)
+
+    def _year(m: int) -> int:
+        return sy - 1 if (wraps and m >= first) else sy
+
+    start = pd.Timestamp(_year(ms[0]), ms[0], 1)
+    end = pd.Timestamp(_year(ms[-1]), ms[-1], 1) + pd.DateOffset(months=1)
+    return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
+
+
+def _month_filter(months: tuple[int, ...]) -> ee.Filter:
+    """Filter for images acquired in any of `months`."""
+    return ee.Filter.Or(*[ee.Filter.calendarRange(m, m, "month") for m in months])
+
 
 # --------------- data / masks --------------------------------------------------------------
 def get_dem() -> ee.Image:
@@ -61,10 +93,14 @@ def get_s1(roi: ee.Geometry, start: str, end: str, orbit: str, pol: str = "VV") 
 
 # --------------- classification --------------------------------------------------------------
 def wet_coll(roi: ee.Geometry, sy: int, orbit: str, pol: str = "VV", thr: float = -2.0,
-             ref_min: float = -20.0, min_ref: int = 3) -> ee.ImageCollection:
-    """Daily classified mosaics of season `sy`: bands `wet` (1/0) and `diff` (dB vs. dry ref)."""
-    col = get_s1(roi, f"{sy - 1}-12-01", f"{sy}-06-01", orbit, pol)
-    ref_col = col.filterDate(f"{sy - 1}-12-01", f"{sy}-03-01")
+             ref_min: float = -20.0, min_ref: int = 3,
+             ref_months: tuple[int, ...] = REF_MONTHS,
+             wet_months: tuple[int, ...] = WET_MONTHS) -> ee.ImageCollection:
+    """Daily classified mosaics of `wet_months` of season `sy`: bands `wet` (1/0) and `diff` (dB vs. dry ref)."""
+    start, end = season_window(sy, ref_months, wet_months)
+    col = get_s1(roi, start, end, orbit, pol)
+    ref_col = col.filter(_month_filter(ref_months))
+    eval_col = col.filter(_month_filter(wet_months))
     tmask = terrain_mask(orbit)
     empty = ee.Image.constant(0).rename(pol).updateMask(ee.Image(0))
 
@@ -80,7 +116,7 @@ def wet_coll(roi: ee.Geometry, sy: int, orbit: str, pol: str = "VV", thr: float 
                 .set("ref_count", rc.size())
                 .set("ref_available", rc.size().gte(min_ref)))
 
-    out = col.map(_cls).filter(ee.Filter.gte("ref_count", min_ref))  # no usable reference -> drop
+    out = eval_col.map(_cls).filter(ee.Filter.gte("ref_count", min_ref))  # no usable reference -> drop
     days = out.aggregate_array("d").distinct()
 
     def _mos(d: ee.String) -> ee.Image:
@@ -96,9 +132,10 @@ def wet_freq(coll: ee.ImageCollection, month: int) -> ee.Image:
     return coll.filter(ee.Filter.calendarRange(month, month, "month")).select("wet").mean()
 
 
-def melt_onset(coll: ee.ImageCollection, sy: int) -> ee.Image:
-    """Days since Dec 1 of the first wet detection per pixel."""
-    t0 = ee.Date.fromYMD(sy - 1, 12, 1)
+def melt_onset(coll: ee.ImageCollection, sy: int, ref_months: tuple[int, ...] = REF_MONTHS,
+               wet_months: tuple[int, ...] = WET_MONTHS) -> ee.Image:
+    """Days since season start (1st of first month) of the first wet detection per pixel."""
+    t0 = ee.Date(season_window(sy, ref_months, wet_months)[0])
 
     def _d(img: ee.Image) -> ee.Image:
         return ee.Image.constant(img.date().difference(t0, "day")).updateMask(img.select("wet")).rename("onset")
@@ -107,22 +144,25 @@ def melt_onset(coll: ee.ImageCollection, sy: int) -> ee.Image:
 
 
 # --------------- statistics --------------------------------------------------------------
-def _annotate(d: pd.DataFrame, sy: int) -> pd.DataFrame:
+def _annotate(d: pd.DataFrame, sy: int, start: str, ref_months: tuple[int, ...] = REF_MONTHS) -> pd.DataFrame:
     d["date"] = pd.to_datetime(d["date"])
     d["sy"] = sy
     d["month"] = d["date"].dt.month
-    d["season"] = np.where(d["month"].isin([12, 1, 2]), "winter", "spring")
-    d["day"] = (d["date"] - pd.Timestamp(sy - 1, 12, 1)).dt.days
+    d["season"] = np.where(d["month"].isin(ref_months), "ref", "eval")
+    d["day"] = (d["date"] - pd.Timestamp(start)).dt.days
     return d
 
 
 def season_stats(roi: ee.Geometry, sy: int, orbit: str, glacier_mask: ee.Image | None = None,
                  pol: str = "VV", thr: float = -2.0, scale: float = 30,
-                 band_h: float = 250.0, debug: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
+                 band_h: float = 250.0, debug: bool = False,
+                 ref_months: tuple[int, ...] = REF_MONTHS,
+                 wet_months: tuple[int, ...] = WET_MONTHS) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Per-date wet fraction (ROI, optional glacier) and per-date/elevation-band wet fraction."""
 
     myprint(debug, f"sy {sy} {orbit}:", end="")
-    coll = wet_coll(roi, sy, orbit, pol, thr)
+    coll = wet_coll(roi, sy, orbit, pol, thr, ref_months=ref_months, wet_months=wet_months)
+    start = season_window(sy, ref_months, wet_months)[0]
 
     eb = get_dem().divide(band_h).floor().multiply(band_h).rename("elev")
     grp = (ee.Reducer.mean().combine(ee.Reducer.count(), sharedInputs=True)
@@ -165,7 +205,8 @@ def season_stats(roi: ee.Geometry, sy: int, orbit: str, glacier_mask: ee.Image |
     if not rows:
         return pd.DataFrame(), pd.DataFrame()
 
-    return _annotate(pd.DataFrame(rows), sy), _annotate(pd.DataFrame(brows, columns=bcols), sy)
+    return (_annotate(pd.DataFrame(rows), sy, start, ref_months),
+            _annotate(pd.DataFrame(brows, columns=bcols), sy, start, ref_months))
 
 
 def all_stats(roi: ee.Geometry, start: str, end: str,
@@ -173,15 +214,20 @@ def all_stats(roi: ee.Geometry, start: str, end: str,
               orbits: tuple[str, ...] = ORBITS, pol: str = "VV",
               thr: float = -2.0, scale: float = 30,
               band_h: float = 250.0, min_valid: float = 0.3,
-              debug: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
+              debug: bool = False,
+              ref_months: tuple[int, ...] = REF_MONTHS,
+              wet_months: tuple[int, ...] = WET_MONTHS) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Run `season_stats` for all season years touching start..end and both orbit directions."""
     t0, t1 = pd.Timestamp(start), pd.Timestamp(end)
-    sy0 = t0.year + (1 if t0.month >= 6 else 0)
     dfs, bdfs = [], []
-    for sy in range(sy0, t1.year + 1):
+    for sy in range(t0.year, t1.year + 2):
+        w0, w1 = (pd.Timestamp(x) for x in season_window(sy, ref_months, wet_months))
+        if w1 <= t0 or w0 > t1:  # season does not touch start..end
+            continue
         for orb in orbits:
             try:
-                d, b = season_stats(roi, sy, orb, glacier_mask, pol, thr, scale, band_h, debug)
+                d, b = season_stats(roi, sy, orb, glacier_mask, pol, thr, scale, band_h, debug,
+                                    ref_months=ref_months, wet_months=wet_months)
             except ee.EEException as e:
                 myprint(debug, f"sy {sy} {orb} failed: {e}")
                 continue
@@ -210,12 +256,30 @@ def monthly_mean_table(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def show_sar_snow_maps(roi: ee.Geometry, sy: int, orbit: Literal["ASCENDING", "DESCENDING"],
-                       months: tuple[int, ...] = MONTHS, glacier_mask: ee.Geometry | None = None) -> geemap.Map:
-    coll = wet_coll(roi, sy, orbit)
+                       months: tuple[int, ...] | None = None, glacier_mask: ee.Geometry | None = None,
+                       ref_months: tuple[int, ...] = REF_MONTHS,
+                       wet_months: tuple[int, ...] = WET_MONTHS) -> geemap.Map:
+    """Interactive map; `months` (layers) default to `wet_months`."""
+    months = months or wet_months
+    coll = wet_coll(roi, sy, orbit, ref_months=ref_months, wet_months=wet_months)
     wet_freqs = {mo:wet_freq(coll, mo) for mo in months}
-    m_onset = melt_onset(coll, sy)
+    m_onset = melt_onset(coll, sy, ref_months, wet_months)
     return plot_sar_snow_maps(roi, coll, wet_freqs, m_onset, sy, glacier_mask=glacier_mask)
 
 
-def show_sar_snow_diff_history(roi: ee.Geometry, sy: int, orbit: Literal["ASCENDING", "DESCENDING"], **kwargs):
-    return plot_sar_snow_diff_hist(roi, coll=wet_coll(roi, sy, orbit), **kwargs)
+def show_sar_snow_diff_history(roi: ee.Geometry, sy: int, orbit: Literal["ASCENDING", "DESCENDING"],
+                               ref_months: tuple[int, ...] = REF_MONTHS,
+                               wet_months: tuple[int, ...] = WET_MONTHS, **kwargs):
+    kwargs.setdefault("months", wet_months)
+    coll = wet_coll(roi, sy, orbit, ref_months=ref_months, wet_months=wet_months)
+    return plot_sar_snow_diff_hist(roi, coll=coll, **kwargs)
+
+
+def show_sar_snow_month_images(roi: ee.Geometry, sy: int, orbit: Literal["ASCENDING", "DESCENDING"],
+                               months: tuple[int, ...] | None = None, glims: ee.Geometry | None = None,
+                               ref_months: tuple[int, ...] = REF_MONTHS,
+                               wet_months: tuple[int, ...] = WET_MONTHS, **kwargs):
+    """Wet frequency image per month of season year `sy`; `months` default to `wet_months`.
+    `glims` = result of get_latest_glims(roi)."""
+    coll = wet_coll(roi, sy, orbit, ref_months=ref_months, wet_months=wet_months)
+    return plot_sar_snow_month_images(roi, coll, sy, orbit, months or wet_months, glims=glims, **kwargs)
